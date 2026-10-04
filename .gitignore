@@ -1,0 +1,53 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*service-account*.json
+*credentials*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# JavaScript (if frontend tooling is introduced later)
+node_modules/
+.npm/
+
+# IDE and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Runtime and local persistence
+*.db
+*.sqlite
+*.sqlite3
+logs/
+tmp/
+.tmp/
+
+# Generated evaluation scratch data. Curated evidence under eval/results is kept.
+eval/runs/
+eval/tmp/
+
+# Generated reports and media
+*.pdf
+*.mp4
