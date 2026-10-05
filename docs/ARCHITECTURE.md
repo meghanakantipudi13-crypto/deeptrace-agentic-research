@@ -40,6 +40,18 @@ ResearchSession
 
 ## Enforced workflow
 
+### Current Phase 2 graph
+
+```text
+START -> start -> plan -> generate bounded queries -> retrieve once
+      -> normalize/deduplicate -> verify every retained source
+      -> citation-safe preliminary synthesis -> finish -> END
+```
+
+There is deliberately no edge from verification or synthesis back to retrieval. Retrieved content is typed untrusted data and never selects graph routes.
+
+### Target full workflow
+
 ```text
 validate -> plan -> persist WAITING_FOR_APPROVAL
                        | approve/modify | reject
@@ -65,7 +77,7 @@ validate -> plan -> persist WAITING_FOR_APPROVAL
 
 - **Cloud SQL PostgreSQL:** future official LangGraph production checkpointer for mutable thread state, interrupt/resume, approval decisions, and idempotency.
 - **GCS:** future immutable/versioned evidence artifacts, reports, redacted traces, memory exports, and evaluation results. Bucket versioning and retention settings will be evaluated against cost and privacy requirements.
-- **Phase 1:** no checkpointer or long-term store. The graph is request-scoped and ends after planning.
+- **Phases 1–2:** no checkpointer or long-term store. Graph runs are request-scoped; Phase 2 ends after one retrieval/verification/synthesis pass.
 - **Local development later:** replaceable test adapters and possibly SQLite for persistence-specific development tests only. Passing local persistence tests will not verify cloud durability.
 
 GCS will not be used as a live SQLite filesystem or custom checkpointer unless a later decision supplies concurrency, atomicity, and restart evidence. Firestore is no longer the default because it would also require custom LangGraph checkpoint integration.

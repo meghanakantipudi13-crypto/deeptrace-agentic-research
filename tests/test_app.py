@@ -34,7 +34,7 @@ def test_health_endpoint() -> None:
         response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "healthy", "service": "deeptrace", "phase": "1"}
+    assert response.json() == {"status": "healthy", "service": "deeptrace", "phase": "2"}
 
 
 def test_main_page_loads() -> None:
@@ -42,7 +42,7 @@ def test_main_page_loads() -> None:
         response = client.get("/")
 
     assert response.status_code == 200
-    assert "Start with a research plan" in response.text
+    assert "Trace a question from plan to preliminary evidence" in response.text
     assert "No sources were retrieved" not in response.text
 
 
@@ -74,4 +74,33 @@ def test_over_length_question_is_rejected_without_model_call() -> None:
 
     assert response.status_code == 400
     assert "500 characters or fewer" in response.text
+    assert model.calls == []
+
+
+def test_research_route_displays_all_phase_two_sections() -> None:
+    from app.search.deterministic import DeterministicSearchProvider
+
+    model = CountingPlanModel()
+    with TestClient(create_app(model, DeterministicSearchProvider())) as client:
+        response = client.post(
+            "/research",
+            data={"question": "How should evidence quality be evaluated?"},
+        )
+
+    assert response.status_code == 200
+    assert "SIMULATED DEVELOPMENT MODE" in response.text
+    assert "Search queries" in response.text
+    assert "Sources and verification" in response.text
+    assert "Preliminary research result" in response.text
+    assert "Phase 2 boundary reached" in response.text
+    assert "No critic, evidence-gap loop, or revised retrieval ran." in response.text
+
+
+def test_research_route_preserves_input_validation() -> None:
+    model = CountingPlanModel()
+    with TestClient(create_app(model)) as client:
+        response = client.post("/research", data={"question": "  "})
+
+    assert response.status_code == 400
+    assert "Enter a research question" in response.text
     assert model.calls == []

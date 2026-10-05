@@ -32,13 +32,13 @@ Statuses distinguish accepted architecture from later implementation. An accepte
 - **Rubric impact:** Directly supports planning/self-correction, HITL, and trace evidence.
 - **Tradeoffs:** Framework semantics and version pinning require targeted tests; graph nodes do not imply A2A multi-agent compliance.
 
-## ADR-004 — Use provider adapters; prefer Vertex AI and evaluate Tavily
+## ADR-004 — Use provider adapters; select Tavily for production search
 
-- **Status:** Provider seam implemented; production providers still proposed
+- **Status:** Tavily adapter implemented — live behavior unverified; model provider still proposed
 - **Context:** The system needs structured generation and web retrieval while keeping costs measurable and deployment credentials manageable.
 - **Options considered:** Direct OpenAI API; Vertex AI Gemini; local model; Google Programmable Search; Tavily.
-- **Decision:** Default model candidate is Gemini via Vertex AI. Search candidate is Tavily behind a `SearchProvider`; run an early reliability/cost spike before locking it.
-- **Rationale:** Vertex AI aligns credentials and monitoring with Google deployment. Tavily offers source-oriented search with low integration complexity, but must earn selection through measured citation/source quality.
+- **Decision:** Keep Gemini via Vertex AI as the production model candidate. Use Tavily as the initial production search provider behind a `SearchProvider`, implemented with direct `httpx` calls rather than a provider SDK. Keep deterministic `.test` fixtures as the credential-free default.
+- **Rationale:** Tavily returns bounded source-attributed snippets, URLs, relevance scores, and optional usage credits suitable for citation mapping. Direct HTTP avoids another dependency and preserves replaceability. A mocked HTTP contract test exists, but live relevance, reliability, latency, and cost remain unverified until a credentialed smoke test.
 - **Rubric impact:** Enables usage accounting and reproducible retrieval while avoiding provider lock-in.
 - **Tradeoffs:** Two external services add cost and failure modes; provider terms and current pricing must be captured at evaluation time.
 
@@ -54,10 +54,10 @@ Statuses distinguish accepted architecture from later implementation. An accepte
 
 ## ADR-006 — Treat every retrieved byte as untrusted data
 
-- **Status:** Proposed for later safety phase
+- **Status:** Foundational content boundary implemented; complete safety phase pending
 - **Context:** Direct and indirect prompt injection are mandatory test cases.
 - **Options considered:** Prompt-only warning; single injection classifier; layered deterministic and model-assisted controls.
-- **Decision:** Keep instructions and retrieved content in distinct typed fields; never concatenate retrieved text into system instructions; sanitize and delimit content; enforce graph gates in code; validate URLs, schemas, citations, budgets, and transitions deterministically; use an injection detector only as an additional signal.
+- **Decision:** Keep instructions and retrieved content in distinct typed fields; never concatenate retrieved text into system instructions; normalize and provenance-tag snippets; enforce static graph gates in code; validate URL schemes and citation mappings; annotate obvious instruction-like content and exclude it from synthesis. Later safety work must add full URL/fetch controls, broader detection, budgets, and deployed attacks.
 - **Rationale:** A model cannot authorize bypassing code-enforced workflow policy.
 - **Rubric impact:** Creates defensible controls for all three required attacks.
 - **Tradeoffs:** False positives and false negatives remain and must be measured.
@@ -74,7 +74,7 @@ Statuses distinguish accepted architecture from later implementation. An accepte
 
 ## ADR-008 — Use cloud-native structured observability
 
-- **Status:** Structured local events implemented; cloud export proposed
+- **Status:** Phase 2 structured events and raw usage counters implemented; cloud export proposed
 - **Context:** Traces must demonstrate workflow transitions without leaking secrets or full sensitive content.
 - **Options considered:** Plain logs; LangSmith only; structured event model exported to Cloud Logging/Monitoring.
 - **Decision:** Emit redacted JSON events with request/session IDs, stage, attempt, decision codes, latency, token counts, provider calls, and guardrail events. Build a Cloud Monitoring dashboard and at least one failure/latency alert. External tracing remains optional.

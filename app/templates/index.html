@@ -3,17 +3,17 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>DeepTrace · Research planning</title>
+    <title>DeepTrace · Retrieval and verification</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
   </head>
   <body>
     <main class="shell">
       <header class="hero">
-        <div class="eyebrow">DeepTrace · Phase 1</div>
-        <h1>Start with a research plan, not an unsupported answer.</h1>
+        <div class="eyebrow">DeepTrace · Phase 2</div>
+        <h1>Trace a question from plan to preliminary evidence.</h1>
         <p>
-          This foundation currently creates a structured plan only. Retrieval, verification,
-          approval, and synthesis are intentionally not active yet.
+          DeepTrace now performs one bounded retrieval pass, verifies source relevance,
+          and produces a citation-mapped preliminary result. Iterative correction is not active yet.
         </p>
       </header>
 
@@ -25,7 +25,7 @@
           </div>
           <span class="limit">Maximum 500 characters</span>
         </div>
-        <form action="/plan" method="post">
+        <form action="/research" method="post">
           <label for="question">What would you like DeepTrace to investigate?</label>
           <textarea
             id="question"
@@ -38,7 +38,7 @@
           {% if error %}
           <p class="error" role="alert">{{ error }}</p>
           {% endif %}
-          <button type="submit">Create research plan <span aria-hidden="true">→</span></button>
+          <button type="submit">Run first research pass <span aria-hidden="true">→</span></button>
         </form>
       </section>
 
@@ -52,7 +52,16 @@
           <span class="status">Plan ready</span>
         </div>
 
-        {% if plan.is_simulated %}
+        {% if research and (plan.is_simulated or research.search_is_simulated) %}
+        <div class="notice" role="status">
+          <strong>SIMULATED DEVELOPMENT MODE</strong>
+          <span>
+            Planner: {{ "simulated" if plan.is_simulated else "real" }} ·
+            Retrieval: {{ "simulated fixtures" if research.search_is_simulated else "real provider" }}
+            ({{ research.search_provider_label }}). Simulated sources are not genuine web research.
+          </span>
+        </div>
+        {% elif plan.is_simulated %}
         <div class="notice" role="status">
           <strong>Simulated development output</strong>
           <span>{{ plan.provider_label }} generated this deterministic planning scaffold. It is not research evidence.</span>
@@ -82,11 +91,101 @@
           {% endfor %}
         </ol>
 
+        {% if not research %}
         <div class="boundary">
           <strong>Phase 1 boundary reached</strong>
           <span>No sources were retrieved and no claims were verified.</span>
         </div>
         <p class="trace">Workflow: {{ result.workflow_events|join(" → ") }} · {{ "%.2f"|format(result.elapsed_ms) }} ms</p>
+        {% endif %}
+      </section>
+      {% endif %}
+
+      {% if research %}
+      <section class="panel" aria-labelledby="queries-heading">
+        <div class="panel-heading">
+          <div><span class="step-marker">03</span><h2 id="queries-heading">Search queries</h2></div>
+          <span class="status">{{ research.queries|length }} bounded queries</span>
+        </div>
+        <ol class="query-list">
+          {% for query in research.queries %}
+          <li><code>{{ query.query_id }}</code><span>{{ query.text }}</span><small>Plan step {{ query.plan_step_order }}</small></li>
+          {% endfor %}
+        </ol>
+      </section>
+
+      <section class="panel" aria-labelledby="sources-heading">
+        <div class="panel-heading">
+          <div><span class="step-marker">04</span><h2 id="sources-heading">Sources and verification</h2></div>
+          <span class="status">{{ research.sources|length }} retained</span>
+        </div>
+        <div class="source-list">
+          {% for source in research.sources %}
+          {% set verification = verification_by_source[source.source_id] %}
+          <article class="source-card">
+            <div class="source-topline">
+              <code>{{ source.source_id }}</code>
+              <span class="verdict {{ 'accepted' if verification.accepted_for_synthesis else 'rejected' }}">
+                {{ verification.support_level }}
+              </span>
+            </div>
+            <h3>{{ source.title }}</h3>
+            {% if source.is_simulated %}
+            <p class="source-url simulated-url">Simulated URL: {{ source.url }}</p>
+            {% else %}
+            <p class="source-url"><a href="{{ source.url }}" target="_blank" rel="noopener noreferrer nofollow">{{ source.url }}</a></p>
+            {% endif %}
+            <p>{{ source.content }}</p>
+            <dl>
+              <div><dt>Plan item</dt><dd>{{ verification.plan_step_order }}</dd></div>
+              <div><dt>Relevance</dt><dd>{{ "%.3f"|format(verification.relevance_score) }}</dd></div>
+              <div><dt>Quality signal</dt><dd>{{ verification.quality_signal }}</dd></div>
+              <div><dt>Provider</dt><dd>{{ source.provider }}</dd></div>
+            </dl>
+            {% if source.instruction_like %}
+            <p class="guardrail">Instruction-like content quarantined; it could not alter graph routing.</p>
+            {% endif %}
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="panel result" aria-labelledby="result-heading">
+        <div class="panel-heading">
+          <div><span class="step-marker">05</span><h2 id="result-heading">Preliminary research result</h2></div>
+          <span class="status">First pass only</span>
+        </div>
+        <p class="summary">{{ research.preliminary_result.summary }}</p>
+        {% if research.preliminary_result.claims %}
+        <ul class="claim-list">
+          {% for claim in research.preliminary_result.claims %}
+          <li>{{ claim.text }} {% for citation_id in claim.citation_ids %}<strong>[{{ citation_id }}]</strong>{% endfor %}</li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="boundary">No evidence passed the foundational support check.</p>
+        {% endif %}
+
+        <h3>Citation map</h3>
+        <ul class="citation-list">
+          {% for citation in research.citations %}
+          <li><strong>[{{ citation.citation_id }}]</strong> {{ citation.title }} — {{ citation.url }}</li>
+          {% else %}
+          <li>No citations were emitted.</li>
+          {% endfor %}
+        </ul>
+
+        <div class="boundary">
+          <strong>Phase 2 boundary reached</strong>
+          <span>One retrieval pass completed. No critic, evidence-gap loop, or revised retrieval ran.</span>
+        </div>
+        <div class="metrics">
+          <span>{{ research.usage.search_calls }} search calls</span>
+          <span>{{ research.usage.search_results_received }} results received</span>
+          <span>{{ research.usage.duplicates_removed }} duplicates removed</span>
+          <span>{{ research.usage.total_latency_ms }} ms</span>
+        </div>
+        <p class="trace">Workflow: {{ research.workflow_events|join(" → ") }}</p>
       </section>
       {% endif %}
     </main>

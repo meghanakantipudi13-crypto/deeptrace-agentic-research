@@ -59,9 +59,34 @@ button:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .evidence li { padding: 7px 10px; border-radius: 999px; background: var(--accent-dark); color: #bdeed1; font-size: 0.82rem; }
 .boundary { border-color: var(--panel-border); background: rgba(115, 242, 167, 0.05); color: var(--ink); }
 .trace { margin: 18px 0 0; color: #78988a; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.75rem; overflow-wrap: anywhere; }
+.query-list, .claim-list, .citation-list { margin: 0; padding-left: 1.25rem; }
+.query-list li { display: grid; grid-template-columns: 42px 1fr auto; gap: 12px; align-items: baseline; padding: 12px 0; border-top: 1px solid var(--panel-border); }
+.query-list small { color: var(--muted); }
+.source-list { display: grid; gap: 15px; }
+.source-card { padding: 20px; border: 1px solid var(--panel-border); border-radius: 14px; background: rgba(2, 9, 7, 0.45); }
+.source-card h3 { margin: 11px 0 7px; }
+.source-card > p { color: var(--muted); line-height: 1.55; }
+.source-topline { display: flex; justify-content: space-between; gap: 12px; }
+.verdict { padding: 4px 8px; border-radius: 999px; font-size: 0.72rem; text-transform: uppercase; }
+.verdict.accepted { background: rgba(115, 242, 167, 0.13); color: var(--accent); }
+.verdict.rejected { background: rgba(255, 170, 163, 0.12); color: var(--error); }
+.source-url { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.77rem; overflow-wrap: anywhere; }
+.source-url a { color: #9ddfc0; }
+.simulated-url { color: var(--warning) !important; }
+.source-card dl { display: flex; flex-wrap: wrap; gap: 10px 22px; margin: 16px 0 0; }
+.source-card dl div { display: flex; gap: 7px; }
+.source-card dt { color: var(--muted); }
+.source-card dd { margin: 0; }
+.guardrail { padding: 10px; border-left: 3px solid var(--warning); color: var(--warning) !important; }
+.summary, .claim-list li, .citation-list li { line-height: 1.65; }
+.claim-list li, .citation-list li { margin: 10px 0; }
+.metrics { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 17px; }
+.metrics span { padding: 7px 10px; border-radius: 999px; background: rgba(115, 242, 167, 0.07); color: var(--muted); font-size: 0.78rem; }
 
 @media (max-width: 620px) {
   .shell { padding-top: 44px; }
   .panel-heading { align-items: flex-start; flex-direction: column; }
   .hero h1 { font-size: 2.55rem; }
+  .query-list li { grid-template-columns: 38px 1fr; }
+  .query-list small { grid-column: 2; }
 }

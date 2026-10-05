@@ -24,6 +24,16 @@ The final submission requires a factual 200–300 word narrative per team member
 - Started the local server on port 8765 and verified `/health`, the home page, and a form submission over HTTP. The returned page displayed a structured plan, a simulated-output warning, and an explicit statement that no retrieval or verification occurred.
 - No advanced feature, safety subsystem, persistence, evaluation result, deployment, or live URL was claimed complete.
 
+### 2026-10-04 — Phase 2 retrieval and verification foundation
+
+- Reconfirmed the clean Phase 1 commit and ran its eight tests before modification; all passed.
+- Selected Tavily behind a provider-neutral interface and implemented it through direct HTTP to avoid an unnecessary SDK. Added deterministic `.test` fixtures for development. No Tavily credential was present, so no live search result was claimed.
+- Added a seven-node LangGraph path: plan, derive up to three queries, make one bounded retrieval pass, normalize/deduplicate up to eight sources, verify evidence, synthesize an extractive preliminary result, and finish.
+- Added typed source, verification, citation, preliminary-result, and usage models. Search calls, result counts, deduplication, retained sources, optional provider credits, per-node latency, and overall latency are recorded without fabricated costs.
+- Added a structural safety boundary for untrusted snippets. Instruction-like content is annotated, reaches the verifier, cannot alter static graph routing, and is excluded from synthesis. This was component testing, not a final adversarial attack.
+- Expanded the UI to show plan, queries, sources, verification, citations, provider mode, metrics, workflow events, and the explicit single-pass boundary.
+- Expanded the suite from eight to 18 tests. A local deterministic smoke test returned HTTP 200 for health, home, and research submission and visibly labeled simulated mode.
+
 ## Final per-member narrative
 
 Not yet written. Replace this section near submission time with 200–300 factual words per team member based on the notes above and subsequent dated entries.

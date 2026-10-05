@@ -16,21 +16,22 @@
 - **Tests:** Health/UI and input tests; deterministic-provider workflow test; real graph-node and event-order assertions.
 - **Completion evidence:** Eight passing automated tests plus local HTTP checks for health, UI, and plan submission on 2026-10-04. Commit/push recorded at phase close.
 
-## Phase 2 — Planning and real HITL
+## Phase 2 — Single-pass retrieval and evidence verification
+
+- **Objective:** Extend planning through bounded query generation, retrieval, normalization, verification, citation mapping, and preliminary synthesis without a correction loop.
+- **Components:** Tavily/provider-neutral search adapter, deterministic fixtures, seven-node research graph, source/evidence/citation models, untrusted-content boundary, usage counters, expanded UI.
+- **Rubric addressed:** Agentic RAG foundation, source verification foundation, safety boundary, observability, cost-instrumentation foundation.
+- **Tests:** Query derivation, provider call contract, deduplication/limits, acceptance/rejection, plan mapping, citation fail-closed behavior, instruction-like-content quarantine, graph order, no correction edge, existing Phase 1 coverage.
+- **Completion evidence:** 18 passing tests and local deterministic HTTP smoke test on 2026-10-04. Live Tavily behavior remains unverified.
+
+## Phase sequencing note
+
+The explicitly approved Phase 2 scope moved retrieval/verification ahead of the earlier draft's HITL phase. This does not remove or weaken HITL: approval, persistence, and self-correction remain mandatory future work. The next phase scope must be explicitly approved before implementation.
+
+## Future — Real HITL
 
 - **Objective:** Persist a generated plan and prevent protected work until approve/modify/cancel.
-- **Components:** Plan schema/versioning, approval endpoint/UI, pause/resume, idempotency.
-- **Rubric addressed:** Multi-step planning and HITL.
-- **Tests:** No retrieval before approval; modified plan requires approval of new revision; cancel stays terminal; resume after process restart.
-- **Completion evidence:** Test trace with zero pre-approval search calls and correct transitions.
-
-## Phase 3 — Agentic retrieval and evidence model
-
-- **Objective:** Retrieve multiple provenance-rich sources per approved task.
-- **Components:** Search/fetch adapters, URL safety, extraction, evidence/source schemas, relevance/quality scoring.
-- **Rubric addressed:** Agentic RAG and safety.
-- **Tests:** Mocked provider contracts; SSRF/redirect/size tests; fixed-corpus relevance cases; citation provenance round-trip.
-- **Completion evidence:** Passing tests and a trace linking plan tasks to sources/evidence.
+- **Required evidence:** No retrieval before approval; modified plan requires approval of its revision; cancel stays terminal; resume after restart.
 
 ## Phase 4 — Verification and execution-changing self-correction
 
@@ -43,10 +44,10 @@
 ## Phase 5 — Durable cross-session memory
 
 - **Objective:** Recover history, reports, and resumable sessions after process restart.
-- **Components:** Firestore/GCS adapters, local fakes, session list/detail UI, retention/redaction policy.
+- **Components:** PostgreSQL/GCS adapters, local fakes, session list/detail UI, retention/redaction policy.
 - **Rubric addressed:** Long-term memory and Cloud Run persistence constraint.
 - **Tests:** New-process recovery; optimistic concurrency; stale approval rejection; storage outage behavior.
-- **Completion evidence:** Restart test and GCS/Firestore object/record metadata without secrets.
+- **Completion evidence:** Restart test and PostgreSQL/GCS record/object metadata without secrets.
 
 ## Phase 6 — Layered safety subsystem
 
@@ -75,7 +76,7 @@
 ## Phase 9 — Assignment-compliant deployment and monitoring
 
 - **Objective:** Produce a stable grader URL on the instructor-confirmed topology.
-- **Components:** Container, Cloud Run Instance/Hermes integration, GCS, Firestore, Secret Manager, IAM, Cloud Logging/Monitoring.
+- **Components:** Container, Cloud Run Instance/Hermes integration, GCS, PostgreSQL, Secret Manager, IAM, Cloud Logging/Monitoring.
 - **Rubric addressed:** Deployment, persistence, monitoring, live URL.
 - **Tests:** Health/readiness, external URL, end-to-end run, restart persistence, concurrency, alert test, secret scan.
 - **Completion evidence:** Deployment revision/config, smoke-test output, monitor evidence, reachable URL.
