@@ -2,7 +2,7 @@
 
 DeepTrace is a developing production-ready agentic research and source-verification platform for CSCI 599 Assignment 4. A user will eventually submit a research question, review a generated plan, and—only after approving or modifying that plan—allow the system to iteratively retrieve, assess, verify, and synthesize evidence with traceable citations.
 
-This repository has completed **Phase 2: single-pass retrieval and evidence verification foundation**. The runnable application validates a question, plans research, derives bounded queries, calls a replaceable search provider inside LangGraph, normalizes and deduplicates sources, performs an explicit relevance/support check, and renders a citation-mapped preliminary result. It intentionally performs exactly one retrieval pass. Approval, critic-driven correction, persistent memory, and a production model remain unimplemented. Status claims are tracked in [RUBRIC_COMPLIANCE.md](RUBRIC_COMPLIANCE.md).
+This repository has completed **Phase 3: bounded iterative retrieval and self-correction**. The runnable application validates a question, plans research, retrieves and verifies evidence, uses a structured critic to detect plan-coverage gaps, conditionally revises queries, and performs at most one additional retrieval pass before citation-safe synthesis. HITL approval, persistent memory, the complete safety subsystem, deployment, and a production model remain unimplemented. Status claims are tracked in [RUBRIC_COMPLIANCE.md](RUBRIC_COMPLIANCE.md).
 
 ## Problem
 
@@ -29,29 +29,30 @@ The minimum planned workflow is:
 - Human-in-the-loop plan approval, modification, and cancellation
 - Cross-session long-term memory backed by durable cloud storage
 
-These are targets, not current implementation claims.
+The first two are verified at the deterministic workflow level in Phase 3. HITL and durable memory remain targets. Production/live-provider verification is still outstanding; see the compliance tracker for exact evidence.
 
 ## Current architecture and planned extensions
 
 - **Language:** Python 3.11
 - **API and UI host:** FastAPI with Jinja2. HTMX/server-sent events remain optional future additions when interactive approval/progress requires them.
-- **Orchestration:** LangGraph with typed state and explicit `start → plan → query → retrieve → verify → preliminary synthesis → finish` edges. There is no correction edge back to retrieval.
+- **Orchestration:** LangGraph with typed state and explicit `plan → query → retrieve → verify → critic` stages. Conditional edges route sufficient evidence to synthesis or insufficient evidence through targeted query revision and another real retrieval pass.
 - **Current model provider:** a deterministic, credential-free development planner whose UI output is explicitly labeled simulated
 - **Default production model candidate:** Gemini through Vertex AI, behind the implemented `PlanModel` abstraction
 - **Search provider:** a `SearchProvider` interface with deterministic `.test` fixtures by default and a Tavily HTTP adapter when `TAVILY_API_KEY` is configured. The live adapter is not yet smoke-tested.
-- **Evidence processing:** provider snippets are normalized to provenance-rich `Source` objects, canonical-URL deduplicated, capped, and treated as untrusted data. No arbitrary source-page fetching occurs yet.
+- **Evidence processing:** provider snippets are normalized to provenance-rich `Source` objects, canonical-URL deduplicated across iterations, capped at 12 retained sources, and treated as untrusted data. No arbitrary source-page fetching occurs yet.
 - **Verification:** deterministic lexical relevance, evidence-length/support, plan-item mapping, instruction-like-content quarantine, and limited domain-category signals. These heuristics do not establish truth or comprehensive source quality.
+- **Critic and correction:** every plan item needs at least one accepted supportive source. Structured missing, weak, or rejected-evidence gaps generate up to two distinct follow-up queries. The maximum is two total retrieval passes (initial plus one correction) to bound cost and latency.
 - **Citations:** every emitted `[S#]` ID is validated against a retained source object before rendering.
 - **Future durable state:** an official LangGraph PostgreSQL checkpointer for mutable workflow/HITL state plus the required Google Cloud Storage bucket for evidence, reports, traces, and cross-session memory artifacts. Neither is implemented.
 - **Evaluation:** repeatable custom harness with versioned fixtures and raw JSONL/CSV results
-- **Observability:** structured JSON events cover requests, all Phase 2 nodes, provider mode, query/result/source counts, verification decisions, deduplication, and latency without logging external document contents. Cloud export remains future work.
+- **Observability:** structured JSON events cover iteration number, critic decisions, gap counts, selected routes, follow-up queries, added/accepted evidence, termination reason, cumulative provider usage, and latency without logging external document contents. Cloud export remains future work.
 - **Deployment candidate:** the assignment-specific Google Cloud Run Instances + Hermes Agent path, pending instructor clarification documented in [docs/DEPLOYMENT_COMPLIANCE.md](docs/DEPLOYMENT_COMPLIANCE.md)
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for component boundaries and state transitions.
 
 ## Safety and guardrails
 
-Phase 2 adds a structural retrieved-content boundary: content stays in typed source fields, cannot select graph edges or permissions, is provenance-tagged, and obvious instruction-like text is annotated and excluded from synthesis. A delimiter contract exists for any future model prompt receiving evidence. Question validation and citation fail-closed checks remain active. This is not the complete assignment safety subsystem, and the three required deployed attacks have not been run.
+Retrieved content stays in typed source fields and cannot directly select graph edges, change iteration budgets, force synthesis, or create citation IDs. Trusted critic state controls routing. Obvious instruction-like text is annotated and excluded from synthesis, including attempts to mark evidence sufficient or change the loop. A delimiter contract exists for future model prompts. This is not the complete assignment safety subsystem, and the three required deployed attacks have not been run.
 
 ## Evaluation
 
@@ -96,7 +97,7 @@ The default planner and search provider are simulated and perform no external ca
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-The suite includes 18 tests covering the Phase 1 foundation plus query derivation, provider invocation, Tavily request parsing, URL normalization, deduplication and limits, verification acceptance/rejection, plan mapping, citation integrity, instruction-like content quarantine, the complete Phase 2 graph, and the explicit absence of a correction loop.
+The suite includes 21 tests. Three deterministic workflow scenarios prove immediate sufficiency, successful correction after a targeted second retrieval, and safe termination at the iteration budget. Additional coverage includes duplicate query suppression, cross-iteration source deduplication and retention, malicious routing instructions, citation integrity, provider invocation, Tavily request parsing, health/UI behavior, and all Phase 1/2 foundations.
 
 ## Deployment
 
@@ -104,10 +105,10 @@ Not deployed. There is no live URL. Ordinary Cloud Run is not being treated as e
 
 ## Limitations
 
-- The default mode uses simulated plans and sources. No live Tavily call was made during Phase 2 verification because no credential was configured.
+- The default mode uses simulated plans and sources. No live Tavily call was made during Phase 3 verification because no credential was configured.
 - The preliminary synthesis is extractive and based on search snippets, not full-document analysis.
 - Relevance and quality signals are basic deterministic heuristics and cannot establish objective truth.
-- Retrieval occurs once; there is no critic, evidence-gap detection, revised query, or self-correction loop.
+- Correction is deterministic and limited to two total retrieval passes; conflict detection remains unimplemented beyond an explicit empty/limited signal because snippets do not encode normalized claim stances.
 - There is no approval checkpoint, persistence, complete safety subsystem, or evaluation harness.
 - The exact required relationship between DeepTrace and Hermes/OpenClaw needs instructor confirmation.
 - GitHub CLI, Docker, and Google Cloud CLI were not detected locally during Phase 0.

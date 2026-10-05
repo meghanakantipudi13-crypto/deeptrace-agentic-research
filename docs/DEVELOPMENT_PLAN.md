@@ -26,20 +26,20 @@
 
 ## Phase sequencing note
 
-The explicitly approved Phase 2 scope moved retrieval/verification ahead of the earlier draft's HITL phase. This does not remove or weaken HITL: approval, persistence, and self-correction remain mandatory future work. The next phase scope must be explicitly approved before implementation.
+The explicitly approved Phase 2 scope moved retrieval/verification ahead of the earlier draft's HITL phase, and the approved Phase 3 scope added bounded self-correction before HITL. This does not remove or weaken approval or persistence requirements. The next phase scope must be explicitly approved before implementation.
 
-## Future — Real HITL
+## Phase 3 — Bounded iterative retrieval and self-correction
+
+- **Objective:** Detect plan-coverage gaps and change actual retrieval within a trusted deterministic limit.
+- **Components:** Structured critic/gap models, conditional LangGraph routes, query reviser, cross-iteration evidence accumulation/deduplication, two-pass budget, termination reasons, uncertainty synthesis, visible trace.
+- **Rubric addressed:** Agentic RAG with iterative retrieval/source verification and multi-step planning with execution-changing self-correction.
+- **Tests:** Scenario A initial sufficiency; Scenario B gap→changed query→second retrieval→reevaluation→success; Scenario C gap→correction→budget stop; duplicate query/source suppression; malicious routing instructions; citations after multiple passes.
+- **Completion evidence:** 21-test deterministic suite plus local Phase 3 HTTP smoke test. Live Tavily behavior remains unverified.
+
+## Phase 4 — Real HITL
 
 - **Objective:** Persist a generated plan and prevent protected work until approve/modify/cancel.
 - **Required evidence:** No retrieval before approval; modified plan requires approval of its revision; cancel stays terminal; resume after restart.
-
-## Phase 4 — Verification and execution-changing self-correction
-
-- **Objective:** Detect gaps/conflicts/unsupported claims and change actual retrieval within limits.
-- **Components:** Claim-evidence verifier, critic rubric, query reviser, loop budget, safe uncertainty path, citation validator.
-- **Rubric addressed:** Source verification and planning/self-correction.
-- **Tests:** Forced insufficiency triggers a changed second query; conflict retained; max-iteration stop; unsupported citation rejected.
-- **Completion evidence:** Trace comparing iteration inputs and critic decisions.
 
 ## Phase 5 — Durable cross-session memory
 

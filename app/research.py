@@ -1,4 +1,4 @@
-"""Pure Phase 2 query, normalization, verification, and synthesis functions."""
+"""Pure query, normalization, verification, criticism, and synthesis functions."""
 
 from __future__ import annotations
 
@@ -7,11 +7,14 @@ from datetime import UTC, datetime
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from app.models import (
+    MAX_FOLLOWUP_QUERIES,
     MAX_INITIAL_QUERIES,
     MAX_SOURCE_CONTENT_LENGTH,
     MAX_TOTAL_SOURCES,
     Citation,
     CitedClaim,
+    EvidenceGap,
+    EvidenceSufficiency,
     EvidenceVerification,
     PreliminaryResearchResult,
     ProviderSearchResult,
@@ -68,6 +71,46 @@ def generate_search_queries(
     return queries
 
 
+def generate_followup_queries(
+    question: str,
+    plan: ResearchPlan,
+    critic: EvidenceSufficiency,
+    previous_queries: list[SearchQuery],
+    iteration: int,
+    limit: int = MAX_FOLLOWUP_QUERIES,
+) -> list[SearchQuery]:
+    """Create bounded, gap-targeted queries while suppressing prior query text."""
+
+    steps = {step.order: step for step in plan.steps}
+    seen = {" ".join(query.text.lower().split()) for query in previous_queries}
+    queries: list[SearchQuery] = []
+    for gap in critic.evidence_gaps:
+        step = steps.get(gap.plan_step_order)
+        if step is None:
+            continue
+        evidence_hint = "; ".join(step.evidence_needed[:2])
+        text = (
+            f"{question.rstrip(' ?.!')} — follow-up evidence for {step.title}: "
+            f"{gap.description}; seek {evidence_hint}"
+        )[:350]
+        normalized = " ".join(text.lower().split())
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        queries.append(
+            SearchQuery(
+                query_id=f"Q{len(previous_queries) + len(queries) + 1}",
+                plan_step_order=gap.plan_step_order,
+                text=text,
+                iteration=iteration,
+                evidence_gap=gap.description,
+            )
+        )
+        if len(queries) >= max(1, min(limit, MAX_FOLLOWUP_QUERIES)):
+            break
+    return queries
+
+
 def canonicalize_url(url: str) -> str | None:
     """Return a stable HTTP(S) URL for safe deduplication, or reject it."""
 
@@ -100,13 +143,19 @@ def normalize_and_deduplicate_sources(
     *,
     is_simulated: bool,
     total_limit: int = MAX_TOTAL_SOURCES,
+    existing_sources: list[Source] | None = None,
+    retrieval_iteration: int = 1,
 ) -> tuple[list[Source], int]:
-    """Attach provenance, reject invalid URLs, and deduplicate canonical URLs."""
+    """Attach provenance and deduplicate against current and prior iterations."""
 
+    existing_sources = existing_sources or []
     retained: list[Source] = []
-    seen_urls: set[str] = set()
+    seen_urls = {source.canonical_url for source in existing_sources}
     duplicates_removed = 0
     retrieved_at = datetime.now(UTC).isoformat()
+    bounded_total_limit = max(1, min(total_limit, MAX_TOTAL_SOURCES))
+    if len(existing_sources) >= bounded_total_limit:
+        return retained, 0
     for query, result in collected:
         canonical_url = canonicalize_url(result.url)
         if canonical_url is None:
@@ -118,7 +167,7 @@ def normalize_and_deduplicate_sources(
         content = " ".join(result.content.split())[:MAX_SOURCE_CONTENT_LENGTH]
         retained.append(
             Source(
-                source_id=f"S{len(retained) + 1}",
+                source_id=f"S{len(existing_sources) + len(retained) + 1}",
                 title=result.title,
                 url=result.url,
                 canonical_url=canonical_url,
@@ -132,11 +181,88 @@ def normalize_and_deduplicate_sources(
                 retrieved_at=retrieved_at,
                 is_simulated=is_simulated,
                 instruction_like=contains_instruction_like_text(content),
+                retrieval_iteration=retrieval_iteration,
             )
         )
-        if len(retained) >= max(1, min(total_limit, MAX_TOTAL_SOURCES)):
+        if len(existing_sources) + len(retained) >= bounded_total_limit:
             break
     return retained, duplicates_removed
+
+
+def evaluate_evidence_sufficiency(
+    plan: ResearchPlan,
+    sources: list[Source],
+    verifications: list[EvidenceVerification],
+    iteration: int,
+) -> EvidenceSufficiency:
+    """Assess plan coverage without treating evidence as universal factual truth."""
+
+    decisions = {item.source_id: item for item in verifications}
+    sources_by_step: dict[int, list[Source]] = {}
+    for source in sources:
+        sources_by_step.setdefault(source.plan_step_order, []).append(source)
+
+    gaps: list[EvidenceGap] = []
+    supported_steps = 0
+    for step in plan.steps:
+        step_sources = sources_by_step.get(step.order, [])
+        step_decisions = [
+            decisions[source.source_id]
+            for source in step_sources
+            if source.source_id in decisions
+        ]
+        if any(
+            decision.accepted_for_synthesis and decision.support_level == "supportive"
+            for decision in step_decisions
+        ):
+            supported_steps += 1
+            continue
+        if not step_sources:
+            issue = "missing"
+            description = "No retained source covers this plan item."
+        elif any(decision.accepted_for_synthesis for decision in step_decisions):
+            issue = "weak"
+            description = "Only contextual evidence is available; supportive evidence is missing."
+        else:
+            issue = "rejected"
+            description = "Retrieved candidates were rejected as irrelevant, insufficient, or unsafe."
+        gaps.append(
+            EvidenceGap(
+                plan_step_order=step.order,
+                plan_step_title=step.title,
+                issue=issue,
+                description=description,
+            )
+        )
+
+    total_steps = len(plan.steps)
+    confidence = supported_steps / total_steps
+    is_sufficient = not gaps
+    recommendations = [
+        (
+            f"Follow up on plan item {gap.plan_step_order} ({gap.plan_step_title}): "
+            f"{gap.description}"
+        )
+        for gap in gaps[:MAX_FOLLOWUP_QUERIES]
+    ]
+    reason = (
+        "Every research-plan item has at least one accepted supportive source."
+        if is_sufficient
+        else f"{len(gaps)} of {total_steps} research-plan items still lack supportive evidence."
+    )
+    return EvidenceSufficiency(
+        iteration=iteration,
+        is_sufficient=is_sufficient,
+        confidence=round(confidence, 3),
+        evidence_gaps=gaps,
+        unsupported_subquestions=[gap.plan_step_order for gap in gaps],
+        conflicts_detected=[],
+        reason=(
+            f"{reason} Conflict detection is limited because current snippets do not "
+            "encode normalized claim stances."
+        ),
+        recommended_followup_queries=recommendations,
+    )
 
 
 def _quality_signal(url: str) -> str:
@@ -241,8 +367,12 @@ def synthesize_preliminary_result(
     question: str,
     sources: list[Source],
     verifications: list[EvidenceVerification],
+    *,
+    critic: EvidenceSufficiency | None = None,
+    termination_reason: str | None = None,
+    retrieval_passes: int = 1,
 ) -> tuple[PreliminaryResearchResult, list[Citation]]:
-    """Create an extractive first-pass result using only accepted evidence."""
+    """Create an extractive result using accumulated accepted evidence only."""
 
     decisions = {verification.source_id: verification for verification in verifications}
     accepted = [
@@ -270,22 +400,31 @@ def synthesize_preliminary_result(
     ]
     if claims:
         summary = (
-            f"For the question '{question}', this first pass retained {len(accepted)} "
-            "relevant source snippets. The extractive points below require deeper verification "
-            "and cross-source critique before they can support a final conclusion."
+            f"For the question '{question}', {retrieval_passes} bounded retrieval pass(es) "
+            f"retained {len(accepted)} accepted source snippets."
         )
     else:
         summary = (
-            f"For the question '{question}', the first retrieval pass did not find evidence "
+            f"For the question '{question}', the bounded retrieval process did not find evidence "
             "that met the foundational relevance and support checks."
+        )
+    incomplete = bool(critic and not critic.is_sufficient)
+    if incomplete:
+        summary += (
+            f" Evidence remained incomplete at termination ({termination_reason}); "
+            f"unsupported plan items: {critic.unsupported_subquestions}."
         )
     result = PreliminaryResearchResult(
         summary=summary,
         claims=claims,
         limitations=[
-            "Only one bounded retrieval pass was performed.",
+            f"The workflow stopped after {retrieval_passes} bounded retrieval pass(es).",
             "Source quality signals are heuristic and do not establish objective truth.",
-            "No critic-driven gap analysis or revised retrieval has occurred.",
+            (
+                "The critic still identified unresolved evidence gaps."
+                if incomplete
+                else "The deterministic critic found supportive coverage for every plan item."
+            ),
         ],
     )
     validate_citation_mapping(result, citations, sources)

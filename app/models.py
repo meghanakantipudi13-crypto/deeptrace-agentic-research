@@ -9,9 +9,11 @@ from pydantic import BaseModel, Field
 
 MAX_QUESTION_LENGTH = 500
 MAX_INITIAL_QUERIES = 3
+MAX_FOLLOWUP_QUERIES = 2
 MAX_RESULTS_PER_QUERY = 3
-MAX_TOTAL_SOURCES = 8
+MAX_TOTAL_SOURCES = 12
 MAX_SOURCE_CONTENT_LENGTH = 1_500
+MAX_RESEARCH_ITERATIONS = 2
 
 
 class PlanStep(BaseModel):
@@ -43,8 +45,17 @@ class ResearchState(TypedDict, total=False):
     status: str
     research_plan: dict[str, Any]
     search_queries: list[dict[str, Any]]
+    active_search_queries: list[dict[str, Any]]
     sources: list[dict[str, Any]]
+    new_source_ids: list[str]
+    iteration_accepted_added: int
     evidence_verifications: list[dict[str, Any]]
+    critic_decision: dict[str, Any]
+    critic_history: list[dict[str, Any]]
+    iteration_traces: list[dict[str, Any]]
+    retrieval_iteration: int
+    max_research_iterations: int
+    termination_reason: str | None
     citations: list[dict[str, Any]]
     preliminary_result: dict[str, Any]
     usage: dict[str, Any]
@@ -68,6 +79,8 @@ class SearchQuery(BaseModel):
     query_id: str = Field(pattern=r"^Q[1-9][0-9]*$")
     plan_step_order: int = Field(ge=1)
     text: str = Field(min_length=1, max_length=350)
+    iteration: int = Field(default=1, ge=1)
+    evidence_gap: str | None = Field(default=None, max_length=500)
 
 
 class ProviderSearchResult(BaseModel):
@@ -106,6 +119,7 @@ class Source(BaseModel):
     retrieved_at: str
     is_simulated: bool
     instruction_like: bool = False
+    retrieval_iteration: int = Field(default=1, ge=1)
 
 
 class EvidenceVerification(BaseModel):
@@ -120,6 +134,41 @@ class EvidenceVerification(BaseModel):
     accepted_for_synthesis: bool
     instruction_like: bool
     reason: str = Field(min_length=1, max_length=500)
+
+
+class EvidenceGap(BaseModel):
+    """A structured plan-coverage deficiency identified by trusted critic code."""
+
+    plan_step_order: int = Field(ge=1)
+    plan_step_title: str = Field(min_length=1, max_length=120)
+    issue: Literal["missing", "weak", "rejected", "conflict"]
+    description: str = Field(min_length=1, max_length=500)
+
+
+class EvidenceSufficiency(BaseModel):
+    """Structured critic output used by conditional graph routing."""
+
+    iteration: int = Field(ge=1)
+    is_sufficient: bool
+    confidence: float = Field(ge=0, le=1)
+    evidence_gaps: list[EvidenceGap] = Field(default_factory=list)
+    unsupported_subquestions: list[int] = Field(default_factory=list)
+    conflicts_detected: list[str] = Field(default_factory=list)
+    reason: str = Field(min_length=1, max_length=800)
+    recommended_followup_queries: list[str] = Field(default_factory=list, max_length=5)
+
+
+class ResearchIterationTrace(BaseModel):
+    """Concise observable facts for one retrieval/verification/critic pass."""
+
+    iteration: int = Field(ge=1)
+    query_ids: list[str]
+    query_count: int = Field(ge=0)
+    sources_added: int = Field(ge=0)
+    accepted_added: int = Field(ge=0)
+    is_sufficient: bool
+    evidence_gaps: list[str] = Field(default_factory=list)
+    route_selected: Literal["revise_queries", "synthesize"]
 
 
 class Citation(BaseModel):
@@ -156,13 +205,15 @@ class UsageMetadata(BaseModel):
     duplicates_removed: int = Field(ge=0)
     retrieval_passes: int = Field(ge=0)
     external_model_calls: int = Field(ge=0)
+    critic_invocations: int = Field(default=0, ge=0)
+    correction_iterations: int = Field(default=0, ge=0)
     provider_credits_used: float | None = Field(default=None, ge=0)
     node_latencies_ms: dict[str, float] = Field(default_factory=dict)
     total_latency_ms: float = Field(ge=0)
 
 
 class ResearchResult(BaseModel):
-    """Validated result returned at the deliberate single-pass Phase 2 boundary."""
+    """Validated result returned after the bounded Phase 3 research loop."""
 
     request_id: str
     status: str
@@ -170,6 +221,16 @@ class ResearchResult(BaseModel):
     queries: list[SearchQuery]
     sources: list[Source]
     verifications: list[EvidenceVerification]
+    critic_history: list[EvidenceSufficiency]
+    iterations: list[ResearchIterationTrace]
+    termination_reason: Literal[
+        "evidence_sufficient",
+        "max_iterations_reached",
+        "no_new_queries",
+        "no_new_evidence",
+        "provider_failure",
+    ]
+    max_research_iterations: int = Field(ge=1)
     citations: list[Citation]
     preliminary_result: PreliminaryResearchResult
     usage: UsageMetadata

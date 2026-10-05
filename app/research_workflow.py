@@ -1,4 +1,4 @@
-"""Single-pass Phase 2 LangGraph retrieval and verification workflow."""
+"""Bounded Phase 3 LangGraph retrieval, criticism, and self-correction workflow."""
 
 from __future__ import annotations
 
@@ -10,9 +10,12 @@ from langgraph.graph import END, START, StateGraph
 
 from app.logging import log_event
 from app.models import (
+    MAX_RESEARCH_ITERATIONS,
     MAX_RESULTS_PER_QUERY,
     Citation,
+    EvidenceSufficiency,
     EvidenceVerification,
+    ResearchIterationTrace,
     ResearchPlan,
     ResearchResult,
     ResearchState,
@@ -22,6 +25,8 @@ from app.models import (
 )
 from app.providers.base import PlanModel
 from app.research import (
+    evaluate_evidence_sufficiency,
+    generate_followup_queries,
     generate_search_queries,
     normalize_and_deduplicate_sources,
     synthesize_preliminary_result,
@@ -31,11 +36,20 @@ from app.search.base import SearchProvider
 
 
 class ResearchWorkflow:
-    """Run exactly one retrieval pass and stop before critic/self-correction."""
+    """Run retrieval and trusted criticism within a deterministic pass budget."""
 
-    def __init__(self, plan_model: PlanModel, search_provider: SearchProvider) -> None:
+    def __init__(
+        self,
+        plan_model: PlanModel,
+        search_provider: SearchProvider,
+        *,
+        max_research_iterations: int = MAX_RESEARCH_ITERATIONS,
+    ) -> None:
         self._plan_model = plan_model
         self._search_provider = search_provider
+        self._max_research_iterations = max(
+            1, min(max_research_iterations, MAX_RESEARCH_ITERATIONS)
+        )
         self._logger = logging.getLogger("deeptrace.research_workflow")
         builder = StateGraph(ResearchState)
         builder.add_node("start_workflow", self._start_workflow)
@@ -43,15 +57,33 @@ class ResearchWorkflow:
         builder.add_node("generate_queries", self._generate_queries)
         builder.add_node("retrieve_sources", self._retrieve_sources)
         builder.add_node("verify_evidence", self._verify_evidence)
-        builder.add_node("synthesize_preliminary_result", self._synthesize)
+        builder.add_node("critic", self._critic)
+        builder.add_node("revise_queries", self._revise_queries)
+        builder.add_node("synthesize_research_result", self._synthesize)
         builder.add_node("finish_workflow", self._finish_workflow)
         builder.add_edge(START, "start_workflow")
         builder.add_edge("start_workflow", "create_plan")
         builder.add_edge("create_plan", "generate_queries")
         builder.add_edge("generate_queries", "retrieve_sources")
         builder.add_edge("retrieve_sources", "verify_evidence")
-        builder.add_edge("verify_evidence", "synthesize_preliminary_result")
-        builder.add_edge("synthesize_preliminary_result", "finish_workflow")
+        builder.add_edge("verify_evidence", "critic")
+        builder.add_conditional_edges(
+            "critic",
+            self._route_after_critic,
+            {
+                "revise_queries": "revise_queries",
+                "synthesize": "synthesize_research_result",
+            },
+        )
+        builder.add_conditional_edges(
+            "revise_queries",
+            self._route_after_revision,
+            {
+                "retrieve_sources": "retrieve_sources",
+                "synthesize": "synthesize_research_result",
+            },
+        )
+        builder.add_edge("synthesize_research_result", "finish_workflow")
         builder.add_edge("finish_workflow", END)
         self.graph = builder.compile()
 
@@ -61,6 +93,7 @@ class ResearchWorkflow:
             "workflow_stage_started",
             request_id=state["request_id"],
             stage=stage,
+            iteration=state.get("retrieval_iteration", 1),
         )
         return perf_counter()
 
@@ -77,10 +110,12 @@ class ResearchWorkflow:
             "workflow_stage_completed",
             request_id=state["request_id"],
             stage=stage,
+            iteration=state.get("retrieval_iteration", 1),
             node_latency_ms=elapsed_ms,
             **fields,
         )
-        return {**state.get("node_latencies_ms", {}), stage: elapsed_ms}
+        latency_key = f"{stage}_iteration_{state.get('retrieval_iteration', 1)}"
+        return {**state.get("node_latencies_ms", {}), latency_key: elapsed_ms}
 
     async def _start_workflow(self, state: ResearchState) -> ResearchState:
         started = self._started(state, "start_workflow")
@@ -112,116 +147,299 @@ class ResearchWorkflow:
         started = self._started(state, "generate_queries")
         plan = ResearchPlan.model_validate(state["research_plan"])
         queries = generate_search_queries(state["question"], plan)
+        serialized = [query.model_dump(mode="json") for query in queries]
         return {
-            "search_queries": [query.model_dump(mode="json") for query in queries],
+            "search_queries": serialized,
+            "active_search_queries": serialized,
             "current_stage": "generate_queries",
             "node_latencies_ms": self._completed(
-                state,
-                "generate_queries",
-                started,
-                query_count=len(queries),
+                state, "generate_queries", started, query_count=len(queries)
             ),
             "workflow_events": [*state.get("workflow_events", []), "queries_generated"],
         }
 
     async def _retrieve_sources(self, state: ResearchState) -> ResearchState:
         started = self._started(state, "retrieve_sources")
-        queries = [SearchQuery.model_validate(item) for item in state["search_queries"]]
+        iteration = state["retrieval_iteration"]
+        queries = [
+            SearchQuery.model_validate(item) for item in state["active_search_queries"]
+        ]
+        existing = [Source.model_validate(item) for item in state.get("sources", [])]
         collected = []
         results_received = 0
+        calls_attempted = 0
         credits: float | None = None
+        provider_failed = False
         for query in queries:
-            batch = await self._search_provider.search(query.text, MAX_RESULTS_PER_QUERY)
+            calls_attempted += 1
+            try:
+                batch = await self._search_provider.search(query.text, MAX_RESULTS_PER_QUERY)
+            except Exception:
+                provider_failed = True
+                log_event(
+                    self._logger,
+                    "search_provider_failed",
+                    request_id=state["request_id"],
+                    provider=self._search_provider.provider_name,
+                    iteration=iteration,
+                )
+                break
             results_received += len(batch.results)
             collected.extend((query, result) for result in batch.results)
             if batch.credits_used is not None:
                 credits = (credits or 0) + batch.credits_used
-        sources, duplicates_removed = normalize_and_deduplicate_sources(
+        new_sources, duplicates_removed = normalize_and_deduplicate_sources(
             collected,
             is_simulated=self._search_provider.is_simulated,
+            existing_sources=existing,
+            retrieval_iteration=iteration,
         )
+        sources = [*existing, *new_sources]
         prior_usage = state.get("usage", {})
+        previous_credits = prior_usage.get("provider_credits_used")
+        total_credits = None
+        if previous_credits is not None or credits is not None:
+            total_credits = (previous_credits or 0) + (credits or 0)
         usage = {
             **prior_usage,
-            "query_count": len(queries),
-            "search_calls": len(queries),
-            "search_results_received": results_received,
+            "query_count": len(state["search_queries"]),
+            "search_calls": prior_usage.get("search_calls", 0) + calls_attempted,
+            "search_results_received": (
+                prior_usage.get("search_results_received", 0) + results_received
+            ),
             "sources_retained": len(sources),
-            "duplicates_removed": duplicates_removed,
-            "retrieval_passes": 1,
-            "provider_credits_used": credits,
+            "duplicates_removed": (
+                prior_usage.get("duplicates_removed", 0) + duplicates_removed
+            ),
+            "retrieval_passes": iteration,
+            "provider_credits_used": total_credits,
         }
         return {
             "sources": [source.model_dump(mode="json") for source in sources],
+            "new_source_ids": [source.source_id for source in new_sources],
             "usage": usage,
+            "termination_reason": (
+                "provider_failure" if provider_failed else state.get("termination_reason")
+            ),
             "current_stage": "retrieve_sources",
             "node_latencies_ms": self._completed(
                 state,
                 "retrieve_sources",
                 started,
                 provider=self._search_provider.provider_name,
-                search_calls=len(queries),
+                search_calls=calls_attempted,
                 results_received=results_received,
-                sources_retained=len(sources),
+                additional_sources=len(new_sources),
                 duplicates_removed=duplicates_removed,
             ),
-            "workflow_events": [*state.get("workflow_events", []), "retrieval_completed"],
+            "workflow_events": [
+                *state.get("workflow_events", []),
+                f"retrieval_iteration_{iteration}_completed",
+            ],
         }
 
     async def _verify_evidence(self, state: ResearchState) -> ResearchState:
         started = self._started(state, "verify_evidence")
+        iteration = state["retrieval_iteration"]
         plan = ResearchPlan.model_validate(state["research_plan"])
         sources = [Source.model_validate(item) for item in state["sources"]]
         verifications = verify_sources(state["question"], plan, sources)
-        accepted = sum(item.accepted_for_synthesis for item in verifications)
+        new_ids = set(state.get("new_source_ids", []))
+        accepted_added = sum(
+            item.accepted_for_synthesis and item.source_id in new_ids
+            for item in verifications
+        )
         return {
-            "evidence_verifications": [item.model_dump(mode="json") for item in verifications],
+            "evidence_verifications": [
+                item.model_dump(mode="json") for item in verifications
+            ],
+            "iteration_accepted_added": accepted_added,
             "current_stage": "verify_evidence",
             "node_latencies_ms": self._completed(
                 state,
                 "verify_evidence",
                 started,
                 relevant_count=sum(item.relevant for item in verifications),
-                accepted_count=accepted,
-                rejected_count=len(verifications) - accepted,
+                accepted_total=sum(item.accepted_for_synthesis for item in verifications),
+                additional_evidence_accepted=accepted_added,
             ),
-            "workflow_events": [*state.get("workflow_events", []), "verification_completed"],
+            "workflow_events": [
+                *state.get("workflow_events", []),
+                f"verification_iteration_{iteration}_completed",
+            ],
         }
 
-    async def _synthesize(self, state: ResearchState) -> ResearchState:
-        started = self._started(state, "synthesize_preliminary_result")
+    async def _critic(self, state: ResearchState) -> ResearchState:
+        started = self._started(state, "critic")
+        iteration = state["retrieval_iteration"]
+        plan = ResearchPlan.model_validate(state["research_plan"])
         sources = [Source.model_validate(item) for item in state["sources"]]
         verifications = [
             EvidenceVerification.model_validate(item)
             for item in state["evidence_verifications"]
         ]
+        decision = evaluate_evidence_sufficiency(plan, sources, verifications, iteration)
+        termination_reason = state.get("termination_reason")
+        if termination_reason != "provider_failure":
+            if decision.is_sufficient:
+                termination_reason = "evidence_sufficient"
+            elif iteration > 1 and not state.get("new_source_ids"):
+                termination_reason = "no_new_evidence"
+            elif iteration >= state["max_research_iterations"]:
+                termination_reason = "max_iterations_reached"
+            else:
+                termination_reason = None
+        route = "synthesize" if termination_reason else "revise_queries"
+        active_queries = [
+            SearchQuery.model_validate(item) for item in state["active_search_queries"]
+        ]
+        trace = ResearchIterationTrace(
+            iteration=iteration,
+            query_ids=[query.query_id for query in active_queries],
+            query_count=len(active_queries),
+            sources_added=len(state.get("new_source_ids", [])),
+            accepted_added=state.get("iteration_accepted_added", 0),
+            is_sufficient=decision.is_sufficient,
+            evidence_gaps=[
+                f"Plan item {gap.plan_step_order}: {gap.description}"
+                for gap in decision.evidence_gaps
+            ],
+            route_selected=route,
+        )
+        prior_usage = state.get("usage", {})
+        return {
+            "critic_decision": decision.model_dump(mode="json"),
+            "critic_history": [
+                *state.get("critic_history", []),
+                decision.model_dump(mode="json"),
+            ],
+            "iteration_traces": [
+                *state.get("iteration_traces", []),
+                trace.model_dump(mode="json"),
+            ],
+            "termination_reason": termination_reason,
+            "usage": {
+                **prior_usage,
+                "critic_invocations": prior_usage.get("critic_invocations", 0) + 1,
+            },
+            "current_stage": "critic",
+            "node_latencies_ms": self._completed(
+                state,
+                "critic",
+                started,
+                is_sufficient=decision.is_sufficient,
+                confidence=decision.confidence,
+                evidence_gap_count=len(decision.evidence_gaps),
+                route_selected=route,
+                termination_reason=termination_reason,
+            ),
+            "workflow_events": [
+                *state.get("workflow_events", []),
+                f"critic_iteration_{iteration}_{'sufficient' if decision.is_sufficient else 'insufficient'}",
+            ],
+        }
+
+    def _route_after_critic(self, state: ResearchState) -> str:
+        return "synthesize" if state.get("termination_reason") else "revise_queries"
+
+    async def _revise_queries(self, state: ResearchState) -> ResearchState:
+        started = self._started(state, "revise_queries")
+        plan = ResearchPlan.model_validate(state["research_plan"])
+        critic = EvidenceSufficiency.model_validate(state["critic_decision"])
+        previous = [SearchQuery.model_validate(item) for item in state["search_queries"]]
+        next_iteration = state["retrieval_iteration"] + 1
+        followups = generate_followup_queries(
+            state["question"], plan, critic, previous, next_iteration
+        )
+        termination_reason = state.get("termination_reason")
+        traces = list(state.get("iteration_traces", []))
+        if not followups:
+            termination_reason = "no_new_queries"
+            if traces:
+                traces[-1] = {**traces[-1], "route_selected": "synthesize"}
+        serialized = [query.model_dump(mode="json") for query in followups]
+        prior_usage = state.get("usage", {})
+        return {
+            "search_queries": [*state["search_queries"], *serialized],
+            "active_search_queries": serialized,
+            "retrieval_iteration": (
+                next_iteration if followups else state["retrieval_iteration"]
+            ),
+            "termination_reason": termination_reason,
+            "iteration_traces": traces,
+            "usage": {
+                **prior_usage,
+                "correction_iterations": (
+                    prior_usage.get("correction_iterations", 0) + (1 if followups else 0)
+                ),
+            },
+            "current_stage": "revise_queries",
+            "node_latencies_ms": self._completed(
+                state,
+                "revise_queries",
+                started,
+                followup_query_count=len(followups),
+                route_selected="retrieve_sources" if followups else "synthesize",
+                termination_reason=termination_reason,
+            ),
+            "workflow_events": [
+                *state.get("workflow_events", []),
+                (
+                    f"queries_revised_for_iteration_{next_iteration}"
+                    if followups
+                    else "query_revision_produced_no_new_queries"
+                ),
+            ],
+        }
+
+    def _route_after_revision(self, state: ResearchState) -> str:
+        return "retrieve_sources" if state.get("active_search_queries") else "synthesize"
+
+    async def _synthesize(self, state: ResearchState) -> ResearchState:
+        started = self._started(state, "synthesize_research_result")
+        sources = [Source.model_validate(item) for item in state["sources"]]
+        verifications = [
+            EvidenceVerification.model_validate(item)
+            for item in state["evidence_verifications"]
+        ]
+        critic = EvidenceSufficiency.model_validate(state["critic_decision"])
         preliminary, citations = synthesize_preliminary_result(
-            state["question"], sources, verifications
+            state["question"],
+            sources,
+            verifications,
+            critic=critic,
+            termination_reason=state["termination_reason"],
+            retrieval_passes=state.get("usage", {}).get("retrieval_passes", 0),
         )
         return {
             "preliminary_result": preliminary.model_dump(mode="json"),
             "citations": [citation.model_dump(mode="json") for citation in citations],
-            "current_stage": "synthesize_preliminary_result",
+            "current_stage": "synthesize_research_result",
             "node_latencies_ms": self._completed(
                 state,
-                "synthesize_preliminary_result",
+                "synthesize_research_result",
                 started,
                 claim_count=len(preliminary.claims),
                 citation_count=len(citations),
+                termination_reason=state["termination_reason"],
             ),
-            "workflow_events": [*state.get("workflow_events", []), "synthesis_completed"],
+            "workflow_events": [
+                *state.get("workflow_events", []),
+                "synthesis_completed",
+            ],
         }
 
     async def _finish_workflow(self, state: ResearchState) -> ResearchState:
         started = self._started(state, "finish_workflow")
         return {
-            "status": "preliminary_result_ready",
+            "status": "research_result_ready",
             "current_stage": "finish_workflow",
             "node_latencies_ms": self._completed(
                 state,
                 "finish_workflow",
                 started,
-                boundary="single_retrieval_pass_complete",
+                termination_reason=state["termination_reason"],
+                retrieval_passes=state.get("usage", {}).get("retrieval_passes", 0),
             ),
             "workflow_events": [*state.get("workflow_events", []), "workflow_completed"],
         }
@@ -235,6 +453,12 @@ class ResearchWorkflow:
                 "question": question,
                 "status": "received",
                 "current_stage": "received",
+                "retrieval_iteration": 1,
+                "max_research_iterations": self._max_research_iterations,
+                "termination_reason": None,
+                "sources": [],
+                "critic_history": [],
+                "iteration_traces": [],
                 "usage": {},
                 "node_latencies_ms": {},
                 "workflow_events": [],
@@ -252,6 +476,16 @@ class ResearchWorkflow:
                 EvidenceVerification.model_validate(item)
                 for item in state["evidence_verifications"]
             ],
+            critic_history=[
+                EvidenceSufficiency.model_validate(item)
+                for item in state["critic_history"]
+            ],
+            iterations=[
+                ResearchIterationTrace.model_validate(item)
+                for item in state["iteration_traces"]
+            ],
+            termination_reason=state["termination_reason"],
+            max_research_iterations=state["max_research_iterations"],
             citations=[Citation.model_validate(item) for item in state["citations"]],
             preliminary_result=state["preliminary_result"],
             usage=UsageMetadata(
@@ -262,6 +496,8 @@ class ResearchWorkflow:
                 duplicates_removed=usage.get("duplicates_removed", 0),
                 retrieval_passes=usage.get("retrieval_passes", 0),
                 external_model_calls=usage.get("external_model_calls", 0),
+                critic_invocations=usage.get("critic_invocations", 0),
+                correction_iterations=usage.get("correction_iterations", 0),
                 provider_credits_used=usage.get("provider_credits_used"),
                 node_latencies_ms=state.get("node_latencies_ms", {}),
                 total_latency_ms=elapsed_ms,

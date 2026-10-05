@@ -40,15 +40,17 @@ ResearchSession
 
 ## Enforced workflow
 
-### Current Phase 2 graph
+### Current Phase 3 graph
 
 ```text
-START -> start -> plan -> generate bounded queries -> retrieve once
-      -> normalize/deduplicate -> verify every retained source
-      -> citation-safe preliminary synthesis -> finish -> END
+START -> start -> plan -> generate bounded queries -> retrieve
+      -> normalize/deduplicate -> verify accumulated sources -> critic
+          | sufficient / terminal reason -> citation-safe synthesis -> finish -> END
+          | gap + budget remains -> revise gap-targeted queries
+                                    -> retrieve -> verify -> critic
 ```
 
-There is deliberately no edge from verification or synthesis back to retrieval. Retrieved content is typed untrusted data and never selects graph routes.
+The maximum is two total retrieval passes. The critic emits typed plan-coverage gaps and application code selects conditional edges. Retrieved content remains typed untrusted data: it cannot select routes, set sufficiency, alter counters, or increase the limit. Earlier evidence is retained and new URLs are deduplicated against the accumulated set. If the budget is exhausted or progress stalls, synthesis discloses unresolved gaps.
 
 ### Target full workflow
 
@@ -77,7 +79,7 @@ validate -> plan -> persist WAITING_FOR_APPROVAL
 
 - **Cloud SQL PostgreSQL:** future official LangGraph production checkpointer for mutable thread state, interrupt/resume, approval decisions, and idempotency.
 - **GCS:** future immutable/versioned evidence artifacts, reports, redacted traces, memory exports, and evaluation results. Bucket versioning and retention settings will be evaluated against cost and privacy requirements.
-- **Phases 1–2:** no checkpointer or long-term store. Graph runs are request-scoped; Phase 2 ends after one retrieval/verification/synthesis pass.
+- **Phases 1–3:** no checkpointer or long-term store. Graph runs are request-scoped; Phase 3 can loop in memory for at most two retrieval passes.
 - **Local development later:** replaceable test adapters and possibly SQLite for persistence-specific development tests only. Passing local persistence tests will not verify cloud durability.
 
 GCS will not be used as a live SQLite filesystem or custom checkpointer unless a later decision supplies concurrency, atomicity, and restart evidence. Firestore is no longer the default because it would also require custom LangGraph checkpoint integration.

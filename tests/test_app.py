@@ -34,7 +34,7 @@ def test_health_endpoint() -> None:
         response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "healthy", "service": "deeptrace", "phase": "2"}
+    assert response.json() == {"status": "healthy", "service": "deeptrace", "phase": "3"}
 
 
 def test_main_page_loads() -> None:
@@ -42,7 +42,7 @@ def test_main_page_loads() -> None:
         response = client.get("/")
 
     assert response.status_code == 200
-    assert "Trace a question from plan to preliminary evidence" in response.text
+    assert "Trace a question through evidence-driven correction" in response.text
     assert "No sources were retrieved" not in response.text
 
 
@@ -77,7 +77,7 @@ def test_over_length_question_is_rejected_without_model_call() -> None:
     assert model.calls == []
 
 
-def test_research_route_displays_all_phase_two_sections() -> None:
+def test_research_route_displays_phase_three_iteration_trace() -> None:
     from app.search.deterministic import DeterministicSearchProvider
 
     model = CountingPlanModel()
@@ -91,9 +91,11 @@ def test_research_route_displays_all_phase_two_sections() -> None:
     assert "SIMULATED DEVELOPMENT MODE" in response.text
     assert "Search queries" in response.text
     assert "Sources and verification" in response.text
-    assert "Preliminary research result" in response.text
-    assert "Phase 2 boundary reached" in response.text
-    assert "No critic, evidence-gap loop, or revised retrieval ran." in response.text
+    assert "Research iterations" in response.text
+    assert "Iteration 1" in response.text
+    assert "Termination: evidence sufficient" in response.text
+    assert "Bounded research result" in response.text
+    assert "Phase 3 boundary reached" in response.text
 
 
 def test_research_route_preserves_input_validation() -> None:

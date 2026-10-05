@@ -45,7 +45,7 @@ class DeterministicPlanModel:
             provider_label="Deterministic development planner",
             is_simulated=True,
             limitations=[
-                "This is simulated planning output for Phase 1 development.",
-                "No retrieval, source verification, or research synthesis has occurred.",
+                "This is simulated planning output for credential-free development.",
+                "Any resulting simulated sources are fixtures, not genuine web research.",
             ],
         )

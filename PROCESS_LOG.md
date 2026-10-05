@@ -34,6 +34,15 @@ The final submission requires a factual 200–300 word narrative per team member
 - Expanded the UI to show plan, queries, sources, verification, citations, provider mode, metrics, workflow events, and the explicit single-pass boundary.
 - Expanded the suite from eight to 18 tests. A local deterministic smoke test returned HTTP 200 for health, home, and research submission and visibly labeled simulated mode.
 
+### 2026-10-04 — Phase 3 bounded iterative self-correction
+
+- Reconfirmed the clean Phase 2 commit and all 18 baseline tests before modification.
+- Added a structured evidence-sufficiency critic that requires supportive coverage for every plan item and records missing, weak, or rejected evidence, confidence, unsupported plan items, recommendations, and the current conflict-detection limitation.
+- Added conditional LangGraph routes from critic to synthesis or query revision, then from revision through the same retrieval and verification nodes. Evidence, provenance, citations, queries, usage, and iteration traces accumulate rather than being replaced.
+- Set a trusted maximum of two total retrieval passes. The graph records evidence-sufficient, maximum-iterations, no-new-query, no-new-evidence, and provider-failure termination conditions and synthesizes uncertainty when gaps remain.
+- Added deterministic Scenarios A, B, and C. They prove immediate sufficiency, a malicious/insufficient first pass followed by targeted successful retrieval, and safe budget exhaustion. The complete suite passed 21 tests. Local HTTP smoke checks returned 200 for health, home, and research and rendered the Phase 3 trace and termination state.
+- Updated the UI to expose iteration counts, query causes, new/accepted sources, critic decisions, selected route, and termination reason without displaying hidden reasoning.
+
 ## Final per-member narrative
 
 Not yet written. Replace this section near submission time with 200–300 factual words per team member based on the notes above and subsequent dated entries.

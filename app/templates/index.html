@@ -3,17 +3,17 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>DeepTrace · Retrieval and verification</title>
+    <title>DeepTrace · Iterative research</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
   </head>
   <body>
     <main class="shell">
       <header class="hero">
-        <div class="eyebrow">DeepTrace · Phase 2</div>
-        <h1>Trace a question from plan to preliminary evidence.</h1>
+        <div class="eyebrow">DeepTrace · Phase 3</div>
+        <h1>Trace a question through evidence-driven correction.</h1>
         <p>
-          DeepTrace now performs one bounded retrieval pass, verifies source relevance,
-          and produces a citation-mapped preliminary result. Iterative correction is not active yet.
+          DeepTrace performs bounded retrieval, checks evidence coverage, and revises
+          actual search queries when a trusted critic identifies a specific gap.
         </p>
       </header>
 
@@ -38,7 +38,7 @@
           {% if error %}
           <p class="error" role="alert">{{ error }}</p>
           {% endif %}
-          <button type="submit">Run first research pass <span aria-hidden="true">→</span></button>
+          <button type="submit">Run bounded research <span aria-hidden="true">→</span></button>
         </form>
       </section>
 
@@ -109,7 +109,11 @@
         </div>
         <ol class="query-list">
           {% for query in research.queries %}
-          <li><code>{{ query.query_id }}</code><span>{{ query.text }}</span><small>Plan step {{ query.plan_step_order }}</small></li>
+          <li>
+            <code>{{ query.query_id }}</code>
+            <span>{{ query.text }}{% if query.evidence_gap %}<em>Gap: {{ query.evidence_gap }}</em>{% endif %}</span>
+            <small>Iteration {{ query.iteration }} · Plan step {{ query.plan_step_order }}</small>
+          </li>
           {% endfor %}
         </ol>
       </section>
@@ -141,6 +145,7 @@
               <div><dt>Relevance</dt><dd>{{ "%.3f"|format(verification.relevance_score) }}</dd></div>
               <div><dt>Quality signal</dt><dd>{{ verification.quality_signal }}</dd></div>
               <div><dt>Provider</dt><dd>{{ source.provider }}</dd></div>
+              <div><dt>Iteration</dt><dd>{{ source.retrieval_iteration }}</dd></div>
             </dl>
             {% if source.instruction_like %}
             <p class="guardrail">Instruction-like content quarantined; it could not alter graph routing.</p>
@@ -150,10 +155,44 @@
         </div>
       </section>
 
+      <section class="panel" aria-labelledby="iterations-heading">
+        <div class="panel-heading">
+          <div><span class="step-marker">05</span><h2 id="iterations-heading">Research iterations</h2></div>
+          <span class="status">{{ research.usage.retrieval_passes }} / {{ research.max_research_iterations }} passes</span>
+        </div>
+        <ol class="iteration-list">
+          {% for iteration in research.iterations %}
+          <li>
+            <div class="iteration-heading">
+              <strong>Iteration {{ iteration.iteration }}</strong>
+              <span class="verdict {{ 'accepted' if iteration.is_sufficient else 'rejected' }}">
+                {{ 'sufficient' if iteration.is_sufficient else 'insufficient' }}
+              </span>
+            </div>
+            <p>{{ iteration.query_count }} queries · {{ iteration.sources_added }} new sources · {{ iteration.accepted_added }} newly accepted</p>
+            {% if iteration.evidence_gaps %}
+            <ul>{% for gap in iteration.evidence_gaps %}<li>{{ gap }}</li>{% endfor %}</ul>
+            {% endif %}
+            <small>Route: {{ iteration.route_selected }}</small>
+          </li>
+          {% endfor %}
+        </ol>
+        <div class="boundary">
+          <strong>Termination: {{ research.termination_reason|replace('_', ' ') }}</strong>
+          {% if research.termination_reason == 'evidence_sufficient' and research.usage.retrieval_passes == 1 %}
+          <span>Evidence was sufficient after initial retrieval.</span>
+          {% elif research.termination_reason == 'evidence_sufficient' %}
+          <span>Evidence became sufficient after targeted query revision and additional retrieval.</span>
+          {% else %}
+          <span>The bounded workflow stopped safely and the result discloses unresolved evidence gaps.</span>
+          {% endif %}
+        </div>
+      </section>
+
       <section class="panel result" aria-labelledby="result-heading">
         <div class="panel-heading">
-          <div><span class="step-marker">05</span><h2 id="result-heading">Preliminary research result</h2></div>
-          <span class="status">First pass only</span>
+          <div><span class="step-marker">06</span><h2 id="result-heading">Bounded research result</h2></div>
+          <span class="status">{{ research.termination_reason|replace('_', ' ') }}</span>
         </div>
         <p class="summary">{{ research.preliminary_result.summary }}</p>
         {% if research.preliminary_result.claims %}
@@ -176,8 +215,8 @@
         </ul>
 
         <div class="boundary">
-          <strong>Phase 2 boundary reached</strong>
-          <span>One retrieval pass completed. No critic, evidence-gap loop, or revised retrieval ran.</span>
+          <strong>Phase 3 boundary reached</strong>
+          <span>Critic-driven retrieval is active and bounded. HITL, persistence, final safety testing, and deployment are not implemented.</span>
         </div>
         <div class="metrics">
           <span>{{ research.usage.search_calls }} search calls</span>

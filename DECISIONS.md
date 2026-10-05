@@ -24,7 +24,7 @@ Statuses distinguish accepted architecture from later implementation. An accepte
 
 ## ADR-003 — Use LangGraph for explicit bounded orchestration
 
-- **Status:** Accepted; Phase 1 graph implemented without persistence
+- **Status:** Accepted; Phase 3 conditional correction graph implemented without persistence
 - **Context:** Planning, pausing, correction, and resumption must affect execution and be testable.
 - **Options considered:** Hand-written state machine; generic agent loop; LangGraph.
 - **Decision:** LangGraph with typed state, explicit nodes/routes, persisted stage transitions, and deterministic iteration limits.
@@ -74,10 +74,20 @@ Statuses distinguish accepted architecture from later implementation. An accepte
 
 ## ADR-008 — Use cloud-native structured observability
 
-- **Status:** Phase 2 structured events and raw usage counters implemented; cloud export proposed
+- **Status:** Phase 3 iteration/critic/route events and raw usage counters implemented; cloud export proposed
 - **Context:** Traces must demonstrate workflow transitions without leaking secrets or full sensitive content.
 - **Options considered:** Plain logs; LangSmith only; structured event model exported to Cloud Logging/Monitoring.
 - **Decision:** Emit redacted JSON events with request/session IDs, stage, attempt, decision codes, latency, token counts, provider calls, and guardrail events. Build a Cloud Monitoring dashboard and at least one failure/latency alert. External tracing remains optional.
 - **Rationale:** Produces deployment evidence using the selected cloud while keeping evaluation artifacts portable.
 - **Rubric impact:** Supports monitoring, cost analysis, demo visibility, and debugging.
 - **Tradeoffs:** Redaction and log-retention policies require tests and configuration.
+
+## ADR-009 — Cap Phase 3 at two retrieval passes
+
+- **Status:** Accepted and deterministically verified
+- **Context:** Self-correction must change execution without creating an unbounded latency/cost loop.
+- **Options considered:** One pass; two total passes; three or more passes; dynamic model-controlled budget.
+- **Decision:** Permit one initial retrieval pass and at most one targeted correction pass. Trusted application state—not retrieved content or model prose—owns the counter and maximum. Stop with `evidence_sufficient`, `max_iterations_reached`, `no_new_queries`, `no_new_evidence`, or `provider_failure`, then synthesize only supported evidence with uncertainty when gaps remain.
+- **Rationale:** Two passes are sufficient to prove real correction while placing a small deterministic ceiling on search calls, latency, and exposure to malicious content. Later measured evaluation may justify changing the constant.
+- **Rubric impact:** Provides execution-changing self-correction and safe bounded termination evidence.
+- **Tradeoffs:** One correction may be insufficient for difficult live research; the current critic uses deterministic coverage heuristics and cannot robustly detect semantic conflicts.

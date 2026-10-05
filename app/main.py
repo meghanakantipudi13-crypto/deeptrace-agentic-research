@@ -1,4 +1,4 @@
-"""FastAPI web application for the DeepTrace Phase 2 research foundation."""
+"""FastAPI web application for the DeepTrace Phase 3 research loop."""
 
 from __future__ import annotations
 
@@ -36,8 +36,8 @@ def create_app(
     selected_search_provider = search_provider or build_search_provider()
     application = FastAPI(
         title="DeepTrace",
-        description="Phase 2 single-pass research retrieval and verification foundation",
-        version="0.2.0",
+        description="Phase 3 bounded iterative retrieval and self-correction",
+        version="0.3.0",
     )
     application.mount(
         "/static",
@@ -52,7 +52,7 @@ def create_app(
 
     @application.get("/health")
     async def health() -> dict[str, str]:
-        return {"status": "healthy", "service": "deeptrace", "phase": "2"}
+        return {"status": "healthy", "service": "deeptrace", "phase": "3"}
 
     @application.get("/", response_class=HTMLResponse)
     async def home(request: Request) -> HTMLResponse:
@@ -151,7 +151,9 @@ def create_app(
                 search_provider=result.search_provider_label,
                 search_is_simulated=result.search_is_simulated,
                 search_calls=result.usage.search_calls,
+                retrieval_passes=result.usage.retrieval_passes,
                 sources_retained=result.usage.sources_retained,
+                termination_reason=result.termination_reason,
                 latency_ms=round((perf_counter() - request_started) * 1000, 3),
             )
             return templates.TemplateResponse(

@@ -5,6 +5,8 @@ import pytest
 from app.models import (
     Citation,
     CitedClaim,
+    EvidenceGap,
+    EvidenceSufficiency,
     EvidenceVerification,
     PlanStep,
     PreliminaryResearchResult,
@@ -15,6 +17,8 @@ from app.models import (
 )
 from app.research import (
     canonicalize_url,
+    evaluate_evidence_sufficiency,
+    generate_followup_queries,
     generate_search_queries,
     normalize_and_deduplicate_sources,
     synthesize_preliminary_result,
@@ -224,3 +228,38 @@ def test_citations_resolve_to_sources_and_invalid_ids_fail_closed() -> None:
     mismatched = [citations[0].model_copy(update={"url": "https://wrong.example/report"})]
     with pytest.raises(ValueError, match="metadata does not match"):
         validate_citation_mapping(preliminary, mismatched, [source])
+
+
+def test_critic_structures_gaps_and_duplicate_followups_are_suppressed() -> None:
+    plan = _plan()
+    supported = _source(
+        "S1",
+        "Official urban heat temperature definitions describe measurement metrics and outcomes in detail.",
+    )
+    verification = verify_sources(plan.question, plan, [supported])
+    critic = evaluate_evidence_sufficiency(plan, [supported], verification, iteration=1)
+
+    assert critic.is_sufficient is False
+    assert critic.confidence == 0.25
+    assert critic.unsupported_subquestions == [2, 3, 4]
+    assert all(isinstance(gap, EvidenceGap) for gap in critic.evidence_gaps)
+    first = generate_followup_queries(plan.question, plan, critic, [], iteration=2)
+    assert len(first) == 2
+    assert all(query.evidence_gap for query in first)
+
+    duplicate_only = EvidenceSufficiency(
+        iteration=1,
+        is_sufficient=False,
+        confidence=0.0,
+        evidence_gaps=[critic.evidence_gaps[0]],
+        unsupported_subquestions=[critic.evidence_gaps[0].plan_step_order],
+        reason="One repeated gap.",
+    )
+    repeated = generate_followup_queries(
+        plan.question,
+        plan,
+        duplicate_only,
+        [first[0]],
+        iteration=2,
+    )
+    assert repeated == []

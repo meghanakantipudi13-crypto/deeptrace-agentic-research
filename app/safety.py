@@ -15,6 +15,11 @@ _INSTRUCTION_PATTERNS = tuple(
         r"skip (?:the )?(verification|verifier|workflow|research)",
         r"(?:change|grant|expand) (?:the )?(tool )?permissions?",
         r"(?:mark|treat) (?:this|the source) as (?:fully )?trusted",
+        r"(?:mark|declare|set) (?:the )?evidence (?:as )?sufficient",
+        r"(?:change|increase|set) (?:the )?(?:iteration|retrieval) (?:count|limit|budget)",
+        r"(?:force|skip to) synthesis",
+        r"(?:choose|change) (?:the )?(?:graph )?route",
+        r"(?:create|use) (?:a )?fake citation",
         r"stop researching",
     )
 )
