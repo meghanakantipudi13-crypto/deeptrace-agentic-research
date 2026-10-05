@@ -4,7 +4,7 @@
 |---|---|---|---|
 | Ambiguous Hermes/OpenClaw deployment boundary | A functional app may still be noncompliant | Ask the five documented instructor questions before locking deployment; keep core portable | Written clarification plus deployed topology review |
 | Cloud Run Instance beta availability/quota | Deployment could fail late | Run a Phase 0/1 account and region feasibility check as soon as tools/credentials are available | Successful minimal instance spike and cost estimate |
-| Non-durable or corrupt state | HITL/memory claims fail after restart | Firestore transactions for state; GCS for versioned artifacts; never put live SQLite locks on GCS FUSE | Process/instance restart and concurrency tests |
+| Non-durable or corrupt state | HITL/memory claims fail after restart | Official LangGraph PostgreSQL checkpointer for mutable state; GCS for versioned artifacts; never put live SQLite locks on GCS FUSE | Process/instance restart and concurrency tests |
 | Decorative HITL | Retrieval proceeds without genuine approval | Code-enforced state gate, plan revision checks, idempotent approval endpoint | Negative test proving zero retrieval calls before approval |
 | Self-correction only in prose | Advanced feature does not affect execution | Critic emits typed gaps; router must create changed query/task and increment iteration | Trace and test showing second retrieval with changed input |
 | Poor or conflicting retrieval | Unsupported reports and weak metrics | Query decomposition, source quality rubric, diversity checks, conflict representation, safe uncertainty | Fixed-corpus and live-web evaluation cases |

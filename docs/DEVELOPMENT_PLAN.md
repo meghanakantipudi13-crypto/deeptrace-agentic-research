@@ -11,10 +11,10 @@
 ## Phase 1 — Minimal observable workflow skeleton
 
 - **Objective:** Run a deterministic end-to-end graph using fake providers.
-- **Components:** Typed session state, FastAPI/UI shell, validate/plan/approve/retrieve/verify/critic/synthesize nodes, structured event recorder, dependency pinning.
+- **Components:** Typed session state, FastAPI/Jinja UI shell, start/plan/finish nodes, structured event recorder, dependency pinning.
 - **Rubric addressed:** Originality/complexity foundation and observability.
-- **Tests:** Unit tests for state schemas/router; one fake-provider workflow test; event-order assertion.
-- **Completion evidence:** Local run and passing tests tied to a commit.
+- **Tests:** Health/UI and input tests; deterministic-provider workflow test; real graph-node and event-order assertions.
+- **Completion evidence:** Eight passing automated tests plus local HTTP checks for health, UI, and plan submission on 2026-10-04. Commit/push recorded at phase close.
 
 ## Phase 2 — Planning and real HITL
 

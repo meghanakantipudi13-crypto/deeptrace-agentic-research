@@ -1,10 +1,10 @@
 # Architecture Decision Log
 
-Decisions marked **Proposed** are not locked until the Phase 0 review is approved.
+Statuses distinguish accepted architecture from later implementation. An accepted decision is not proof that every capability it describes is implemented.
 
 ## ADR-001 — Keep the application core independent of deployment runtime
 
-- **Status:** Proposed
+- **Status:** Accepted; deployment adapter remains unresolved
 - **Context:** The rubric names Cloud Run Instances with OpenClaw or Hermes Agent, but the exact integration boundary is not stated.
 - **Options considered:** Build directly into Hermes; build an independent ordinary Cloud Run app; define a portable core plus deployment adapter.
 - **Decision:** Use a framework-neutral domain core and provider interfaces, with a thin Hermes/OpenClaw deployment adapter added after instructor clarification.
@@ -14,17 +14,17 @@ Decisions marked **Proposed** are not locked until the Phase 0 review is approve
 
 ## ADR-002 — Use Python 3.11, FastAPI, and a minimal server-rendered UI
 
-- **Status:** Proposed
+- **Status:** Accepted; FastAPI/Jinja implemented in Phase 1
 - **Context:** The grader must clearly see state transitions; a separate frontend would add deployment and synchronization work.
 - **Options considered:** Streamlit; FastAPI plus React; FastAPI plus Jinja2/HTMX/SSE.
-- **Decision:** FastAPI with Jinja2/HTMX and server-sent events.
+- **Decision:** FastAPI with Jinja2 now; add HTMX and server-sent events only when later interactive approval/progress behavior needs them.
 - **Rationale:** One container can provide typed APIs, real approval actions, event streaming, and a clean demo UI without a second build/deploy pipeline.
 - **Rubric impact:** Supports visible HITL, workflow observability, and a reliable demo.
 - **Tradeoffs:** Less visual flexibility than a full SPA; SSE reconnection and accessibility still require tests.
 
 ## ADR-003 — Use LangGraph for explicit bounded orchestration
 
-- **Status:** Proposed
+- **Status:** Accepted; Phase 1 graph implemented without persistence
 - **Context:** Planning, pausing, correction, and resumption must affect execution and be testable.
 - **Options considered:** Hand-written state machine; generic agent loop; LangGraph.
 - **Decision:** LangGraph with typed state, explicit nodes/routes, persisted stage transitions, and deterministic iteration limits.
@@ -34,7 +34,7 @@ Decisions marked **Proposed** are not locked until the Phase 0 review is approve
 
 ## ADR-004 — Use provider adapters; prefer Vertex AI and evaluate Tavily
 
-- **Status:** Proposed
+- **Status:** Provider seam implemented; production providers still proposed
 - **Context:** The system needs structured generation and web retrieval while keeping costs measurable and deployment credentials manageable.
 - **Options considered:** Direct OpenAI API; Vertex AI Gemini; local model; Google Programmable Search; Tavily.
 - **Decision:** Default model candidate is Gemini via Vertex AI. Search candidate is Tavily behind a `SearchProvider`; run an early reliability/cost spike before locking it.
@@ -42,19 +42,19 @@ Decisions marked **Proposed** are not locked until the Phase 0 review is approve
 - **Rubric impact:** Enables usage accounting and reproducible retrieval while avoiding provider lock-in.
 - **Tradeoffs:** Two external services add cost and failure modes; provider terms and current pricing must be captured at evaluation time.
 
-## ADR-005 — Separate transactional workflow state from immutable artifacts
+## ADR-005 — Use PostgreSQL checkpoints plus GCS artifacts; do not use Firestore by default
 
-- **Status:** Proposed
-- **Context:** Cloud Run filesystems are not durable, HITL state must survive restarts, and the assignment explicitly requires a GCS bucket for long-term memory on Cloud Run Instances.
-- **Options considered:** Local SQLite; SQLite on GCS FUSE; Cloud SQL; Firestore plus GCS.
-- **Decision:** Use Firestore for sessions, approval status, idempotency, and current workflow metadata; use GCS for versioned reports, evidence snapshots, traces, evaluation artifacts, and memory exports. Use local SQLite or filesystem adapters only in development tests.
-- **Rationale:** Avoids SQLite locking problems on object storage and satisfies the explicit bucket constraint while preserving transactional gates.
-- **Rubric impact:** Supports real restart-safe HITL and long-term memory.
-- **Tradeoffs:** Two persistence APIs and emulator/fake adapters are needed. Instructor should confirm Firestore alongside GCS is acceptable.
+- **Status:** Accepted architecture; not implemented in Phase 1
+- **Context:** Cloud Run filesystems are not durable, future HITL must survive restarts, and the assignment explicitly requires a GCS bucket for long-term memory on Cloud Run Instances. LangGraph distinguishes thread checkpoints used for HITL from cross-thread long-term stores.
+- **Options considered:** GCS only with generation preconditions; Firestore plus GCS; Cloud SQL PostgreSQL plus GCS; local SQLite.
+- **Decision:** Do not add Firestore by default. In the persistence phase, use LangGraph's supported PostgreSQL checkpointer for mutable graph/thread state, interrupt/resume checkpoints, approval status, and idempotency. Use GCS for immutable or versioned evidence snapshots, reports, redacted traces, evaluation artifacts, and cross-session memory exports required by the assignment. Implement neither store in Phase 1.
+- **Rationale:** GCS provides strong object consistency and conditional writes but no atomic multi-object transaction, so using it as a checkpointer would require a bespoke concurrency-sensitive adapter. Firestore provides transactions but still needs custom LangGraph checkpoint integration. PostgreSQL has an official LangGraph saver, making it the lowest-risk path for reliable interrupts despite adding a managed database. GCS remains necessary for the rubric and artifact storage.
+- **Rubric impact:** Preserves GCS-backed durable memory while selecting a supported checkpoint path for genuine restart-safe HITL.
+- **Tradeoffs:** Two managed storage services remain. Cloud SQL adds cost and operations, and compatibility with the final Cloud Run Instances/Hermes topology must be validated before implementation. If the instructor requires GCS alone, this ADR must be revisited with explicit concurrency tests.
 
 ## ADR-006 — Treat every retrieved byte as untrusted data
 
-- **Status:** Proposed
+- **Status:** Proposed for later safety phase
 - **Context:** Direct and indirect prompt injection are mandatory test cases.
 - **Options considered:** Prompt-only warning; single injection classifier; layered deterministic and model-assisted controls.
 - **Decision:** Keep instructions and retrieved content in distinct typed fields; never concatenate retrieved text into system instructions; sanitize and delimit content; enforce graph gates in code; validate URLs, schemas, citations, budgets, and transitions deterministically; use an injection detector only as an additional signal.
@@ -64,7 +64,7 @@ Decisions marked **Proposed** are not locked until the Phase 0 review is approve
 
 ## ADR-007 — Use a capability-matched custom evaluation harness
 
-- **Status:** Proposed
+- **Status:** Proposed for later evaluation phase
 - **Context:** General computer-use benchmarks do not directly measure DeepTrace's research and verification behavior.
 - **Options considered:** OSWorld/WebArena only; hosted trace metrics only; custom deterministic/LLM-judge hybrid harness.
 - **Decision:** Use versioned cases with deterministic checks wherever possible and blinded rubric-based judging only for semantic quality; retain raw inputs, outputs, traces, and scorer versions.
@@ -74,7 +74,7 @@ Decisions marked **Proposed** are not locked until the Phase 0 review is approve
 
 ## ADR-008 — Use cloud-native structured observability
 
-- **Status:** Proposed
+- **Status:** Structured local events implemented; cloud export proposed
 - **Context:** Traces must demonstrate workflow transitions without leaking secrets or full sensitive content.
 - **Options considered:** Plain logs; LangSmith only; structured event model exported to Cloud Logging/Monitoring.
 - **Decision:** Emit redacted JSON events with request/session IDs, stage, attempt, decision codes, latency, token counts, provider calls, and guardrail events. Build a Cloud Monitoring dashboard and at least one failure/latency alert. External tracing remains optional.

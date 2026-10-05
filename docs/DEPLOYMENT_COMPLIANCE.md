@@ -11,7 +11,7 @@ The assignment says the preferred path must use “Google Cloud Run Instances wi
 - Cloud Run Instance running a pinned Hermes Agent image plus a reviewed DeepTrace integration.
 - DeepTrace domain/workflow package installed as a Hermes skill/plugin or launched by an instructor-approved supervisor pattern.
 - GCS bucket mounted or accessed through the client API for durable artifacts and long-term memory.
-- Firestore for transactional workflow/approval metadata, subject to instructor approval.
+- Cloud SQL PostgreSQL for the official LangGraph checkpointer and transactional workflow/approval metadata, subject to instructor/topology validation.
 - Secret Manager for provider credentials.
 - Vertex AI for the default model.
 - Cloud Logging and Cloud Monitoring dashboard/alert for monitoring evidence.
@@ -21,7 +21,7 @@ The assignment says the preferred path must use “Google Cloud Run Instances wi
 
 1. Does compliance require DeepTrace to be implemented as a Hermes Agent/OpenClaw skill or plugin, or is running the DeepTrace service alongside a configured Hermes/OpenClaw process in the same Cloud Run Instance acceptable?
 2. Must the grader-facing URL be the Hermes/OpenClaw dashboard, or may it be DeepTrace's own FastAPI UI exposed from the same Cloud Run Instance?
-3. Is Firestore permitted for transactional session and approval state when the required GCS bucket remains the durable store for long-term memory artifacts, evidence, reports, and traces?
+3. Is Cloud SQL PostgreSQL permitted for LangGraph checkpoint/approval state when the required GCS bucket remains the durable store for long-term memory artifacts, evidence, reports, and traces?
 4. Is the beta `gcloud run instances` product specifically required, and are there course-provided region/project/quota constraints?
 5. What monitoring evidence is expected: Cloud Logging alone, or a Cloud Monitoring dashboard and alert policy?
 

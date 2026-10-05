@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DeepTrace · Research planning</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div class="eyebrow">DeepTrace · Phase 1</div>
+        <h1>Start with a research plan, not an unsupported answer.</h1>
+        <p>
+          This foundation currently creates a structured plan only. Retrieval, verification,
+          approval, and synthesis are intentionally not active yet.
+        </p>
+      </header>
+
+      <section class="panel" aria-labelledby="question-heading">
+        <div class="panel-heading">
+          <div>
+            <span class="step-marker">01</span>
+            <h2 id="question-heading">Research question</h2>
+          </div>
+          <span class="limit">Maximum 500 characters</span>
+        </div>
+        <form action="/plan" method="post">
+          <label for="question">What would you like DeepTrace to investigate?</label>
+          <textarea
+            id="question"
+            name="question"
+            rows="5"
+            maxlength="500"
+            placeholder="Example: How has urban heat mitigation evidence changed since 2020?"
+            required
+          >{{ question }}</textarea>
+          {% if error %}
+          <p class="error" role="alert">{{ error }}</p>
+          {% endif %}
+          <button type="submit">Create research plan <span aria-hidden="true">→</span></button>
+        </form>
+      </section>
+
+      {% if plan %}
+      <section class="panel result" aria-labelledby="plan-heading">
+        <div class="panel-heading">
+          <div>
+            <span class="step-marker">02</span>
+            <h2 id="plan-heading">Initial research plan</h2>
+          </div>
+          <span class="status">Plan ready</span>
+        </div>
+
+        {% if plan.is_simulated %}
+        <div class="notice" role="status">
+          <strong>Simulated development output</strong>
+          <span>{{ plan.provider_label }} generated this deterministic planning scaffold. It is not research evidence.</span>
+        </div>
+        {% endif %}
+
+        <div class="objective">
+          <span>Objective</span>
+          <p>{{ plan.objective }}</p>
+        </div>
+
+        <ol class="plan-list">
+          {% for step in plan.steps %}
+          <li>
+            <div class="step-number">{{ "%02d"|format(step.order) }}</div>
+            <div>
+              <h3>{{ step.title }}</h3>
+              <p>{{ step.purpose }}</p>
+              <div class="evidence">
+                <span>Evidence needed</span>
+                <ul>
+                  {% for item in step.evidence_needed %}<li>{{ item }}</li>{% endfor %}
+                </ul>
+              </div>
+            </div>
+          </li>
+          {% endfor %}
+        </ol>
+
+        <div class="boundary">
+          <strong>Phase 1 boundary reached</strong>
+          <span>No sources were retrieved and no claims were verified.</span>
+        </div>
+        <p class="trace">Workflow: {{ result.workflow_events|join(" → ") }} · {{ "%.2f"|format(result.elapsed_ms) }} ms</p>
+      </section>
+      {% endif %}
+    </main>
+  </body>
+</html>

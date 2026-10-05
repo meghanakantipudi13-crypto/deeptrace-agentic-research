@@ -8,13 +8,13 @@ Status vocabulary is restricted to: **NOT STARTED**, **IN PROGRESS**, **IMPLEMEN
 
 | Requirement | Planned implementation | Status | Verification evidence |
 |---|---|---:|---|
-| Original agentic application | DeepTrace research and source-verification workflow | IN PROGRESS | Phase 0 concept and architecture documents only |
-| Assignment 3+ complexity | Stateful plan/approve/retrieve/verify/critic/correct/synthesize graph | NOT STARTED | None |
+| Original agentic application | DeepTrace research and source-verification workflow | IN PROGRESS | Phase 1 runnable planning foundation; full workflow absent |
+| Assignment 3+ complexity | Stateful plan/approve/retrieve/verify/critic/correct/synthesize graph | IN PROGRESS | Typed LangGraph state and three-node planning graph only |
 | At least 3 advanced features | Four features listed below | NOT STARTED | None |
 | Agentic RAG | Iterative query generation, retrieval, evidence scoring, claim verification | NOT STARTED | None |
-| Planning/self-correction | Typed plan plus critic route that changes subsequent retrieval | NOT STARTED | None |
+| Planning/self-correction | Typed plan plus critic route that changes subsequent retrieval | IN PROGRESS | Structured plan exists; critic and correction loop do not |
 | Human-in-the-loop | Persisted approve/modify/cancel gate before retrieval | NOT STARTED | None |
-| Long-term memory | Cross-session history in Firestore/GCS; restart test required | NOT STARTED | None |
+| Long-term memory | Cross-session history/artifacts in PostgreSQL/GCS; restart test required | NOT STARTED | Architecture decision only; no persistence |
 | Safety subsystem | Layered deterministic and model-assisted controls | NOT STARTED | None |
 | Injection attack #1 | Direct user instruction override/system-prompt extraction | NOT STARTED | No attack run |
 | Injection attack #2 | Indirect injection embedded in retrieved content | NOT STARTED | No attack run |
@@ -25,10 +25,13 @@ Status vocabulary is restricted to: **NOT STARTED**, **IN PROGRESS**, **IMPLEMEN
 | Mitigations | Tested controls linked to failures | NOT STARTED | None |
 | Cost analysis | Token/API/storage/latency counters and pricing assumptions | NOT STARTED | None |
 | Approved deployment | Cloud Run Instances + Hermes/OpenClaw topology | BLOCKED | Instructor clarification required; see deployment document |
-| Monitoring | Structured logs, Cloud Monitoring dashboard and alert | NOT STARTED | None |
+| Monitoring | Structured logs, Cloud Monitoring dashboard and alert | IN PROGRESS | Local JSON request/node/latency logs; no cloud monitoring |
 | Live URL | TA-accessible protected deployment | NOT STARTED | No URL |
-| GitHub repository | `deeptrace-agentic-research` recommended | BLOCKED | GitHub CLI absent; remote not created |
-| README | Accurate Phase 0 documentation | IN PROGRESS | `README.md`; final sections/results incomplete |
+| GitHub repository | `deeptrace-agentic-research` | VERIFIED | <https://github.com/meghanakantipudi13-crypto/deeptrace-agentic-research> |
+| Phase 1 planning foundation | FastAPI/Jinja UI + real LangGraph planning graph | VERIFIED | 8 automated tests and local HTTP smoke test on 2026-10-04 |
+| Foundational input validation | Normalize, reject blank, enforce 500-character limit | VERIFIED | Automated valid/empty/over-length/normalization tests |
+| Health endpoint | `GET /health` | VERIFIED | Automated test plus local HTTP 200 on 2026-10-04 |
+| README | Accurate current documentation | IN PROGRESS | Phase 1 setup/run/test instructions; final results incomplete |
 | Demo | 5–10 minute MP4 showing end-to-end run and guardrail | NOT STARTED | None |
 | Presentation | 10+ slides covering required topics | NOT STARTED | None |
 | Evaluation report | Markdown, optionally exported to PDF | IN PROGRESS | Honest scaffold only; no results |

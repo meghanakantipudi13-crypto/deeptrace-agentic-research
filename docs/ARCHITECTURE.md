@@ -63,11 +63,12 @@ validate -> plan -> persist WAITING_FOR_APPROVAL
 
 ## Persistence plan
 
-- **Firestore:** transactional session metadata, plan revisions, approval decisions, idempotency, current stage, and resumable workflow metadata.
-- **GCS:** immutable/versioned evidence artifacts, reports, redacted traces, memory exports, and evaluation results. Bucket versioning and retention settings will be evaluated against cost and privacy requirements.
-- **Local development:** replaceable fake/filesystem adapters and possibly SQLite for tests only. Passing local persistence tests does not verify cloud durability.
+- **Cloud SQL PostgreSQL:** future official LangGraph production checkpointer for mutable thread state, interrupt/resume, approval decisions, and idempotency.
+- **GCS:** future immutable/versioned evidence artifacts, reports, redacted traces, memory exports, and evaluation results. Bucket versioning and retention settings will be evaluated against cost and privacy requirements.
+- **Phase 1:** no checkpointer or long-term store. The graph is request-scoped and ends after planning.
+- **Local development later:** replaceable test adapters and possibly SQLite for persistence-specific development tests only. Passing local persistence tests will not verify cloud durability.
 
-Before implementation, verify whether LangGraph's production checkpointer can map cleanly onto the chosen store. If not, persist the application state at every transition and reconstruct graph input explicitly rather than placing SQLite on GCS FUSE.
+GCS will not be used as a live SQLite filesystem or custom checkpointer unless a later decision supplies concurrency, atomicity, and restart evidence. Firestore is no longer the default because it would also require custom LangGraph checkpoint integration.
 
 ## Safety controls
 
