@@ -8,12 +8,12 @@ Status vocabulary is restricted to: **NOT STARTED**, **IN PROGRESS**, **IMPLEMEN
 
 | Requirement | Planned implementation | Status | Verification evidence |
 |---|---|---:|---|
-| Original agentic application | DeepTrace research and source-verification workflow | IN PROGRESS | Phase 3 runnable iterative workflow; HITL, memory, deployment, and final evaluation remain absent |
-| Assignment 3+ complexity | Stateful plan/approve/retrieve/verify/critic/correct/synthesize graph | IN PROGRESS | Conditional critic/correction graph verified; HITL/persistence absent |
-| At least 3 advanced features | Four features listed below | IN PROGRESS | Two of four selected features verified with deterministic providers |
+| Original agentic application | DeepTrace research and source-verification workflow | IN PROGRESS | Phase 4 runnable approve/modify/reject plus iterative workflow; memory, deployment, and final evaluation remain absent |
+| Assignment 3+ complexity | Stateful plan/approve/retrieve/verify/critic/correct/synthesize graph | IN PROGRESS | Local interrupt/resume and conditional correction verified; durable persistence absent |
+| At least 3 advanced features | Four features listed below | VERIFIED | Three selected features verified locally with deterministic providers; long-term memory remains unimplemented |
 | Agentic RAG | Iterative query generation, retrieval, evidence scoring, claim verification | VERIFIED | 2026-10-04 `tests/test_research_workflow.py::test_scenario_b_insufficient_evidence_triggers_targeted_correction`: expected targeted second retrieval; actual 2 passes, critic false→true, cited synthesis, PASS. Deterministic provider only; live provider remains unverified |
 | Planning/self-correction | Typed plan plus critic route that changes subsequent retrieval | VERIFIED | 2026-10-04 Scenario B expected/actual changed query and second retrieval, PASS; `test_scenario_c_remains_insufficient_and_stops_at_budget` expected/actual 2-pass safe stop, PASS |
-| Human-in-the-loop | Persisted approve/modify/cancel gate before retrieval | NOT STARTED | None |
+| Human-in-the-loop | Interruptible approve/modify/cancel gate before retrieval | VERIFIED | 2026-10-05 `tests/test_hitl_workflow.py` Scenarios A–F: real interrupt, zero pre-approval calls, same-thread resume, modified-plan query change, zero-call reject, invalid/duplicate rejection; 6/6 PASS. Local `InMemorySaver` only—not production persistence |
 | Long-term memory | Cross-session history/artifacts in PostgreSQL/GCS; restart test required | NOT STARTED | Architecture decision only; no persistence |
 | Safety subsystem | Layered deterministic and model-assisted controls | IN PROGRESS | Typed untrusted-content boundary and instruction annotation only |
 | Injection attack #1 | Direct user instruction override/system-prompt extraction | NOT STARTED | No attack run |
@@ -25,18 +25,19 @@ Status vocabulary is restricted to: **NOT STARTED**, **IN PROGRESS**, **IMPLEMEN
 | Mitigations | Tested controls linked to failures | IN PROGRESS | Deterministic routing, loop-budget, citation, and instruction-quarantine controls tested; full safety/evaluation work absent |
 | Cost analysis | Token/API/storage/latency counters and pricing assumptions | IN PROGRESS | Search/result/call/credit and latency facts captured; no dollar analysis |
 | Approved deployment | Cloud Run Instances + Hermes/OpenClaw topology | BLOCKED | Instructor clarification required; see deployment document |
-| Monitoring | Structured logs, Cloud Monitoring dashboard and alert | IN PROGRESS | Phase 3 JSON iteration/critic/route/termination/usage/latency logs; no cloud monitoring |
+| Monitoring | Structured logs, Cloud Monitoring dashboard and alert | IN PROGRESS | Phase 4 workflow/interrupt/decision/modification/resume/reject/duplicate plus Phase 3 research events; no cloud monitoring |
 | Live URL | TA-accessible protected deployment | NOT STARTED | No URL |
 | GitHub repository | `deeptrace-agentic-research` | VERIFIED | <https://github.com/meghanakantipudi13-crypto/deeptrace-agentic-research> |
 | Phase 1 planning foundation | FastAPI/Jinja UI + real LangGraph planning graph | VERIFIED | 8 automated tests and local HTTP smoke test on 2026-10-04 |
 | Phase 2 retrieval foundation | Query/retrieve/normalize/verify/cite/synthesize graph | VERIFIED | 18 automated tests and local deterministic HTTP smoke test on 2026-10-04 |
 | Phase 3 iterative correction | Critic/gap/revise/retrieve/reevaluate loop | VERIFIED | 21-test suite includes Scenarios A/B/C in `tests/test_research_workflow.py`; deterministic providers only, 2026-10-04 |
+| Phase 4 local HITL | LangGraph interrupt/checkpoint/resume approval gate | VERIFIED | 30-test suite includes HITL Scenarios A–F, approval UI paths, and approved Phase 3 regressions; local deterministic verification, 2026-10-05 |
 | Tavily live search adapter | Direct HTTP `SearchProvider` implementation | IMPLEMENTED — UNVERIFIED | Mock HTTP contract passed; no `TAVILY_API_KEY`, so no live call |
 | Citation mapping | `[S#]` IDs validated against retained sources | VERIFIED | Deterministic citation mapping and nonexistent-ID rejection tests |
 | Retrieved-content structural boundary | Untrusted typed content cannot alter graph routing or loop controls | VERIFIED | Scenario B embeds sufficiency/iteration/synthesis/citation manipulation; critic remains insufficient and executes the bounded correction route |
 | Foundational input validation | Normalize, reject blank, enforce 500-character limit | VERIFIED | Automated valid/empty/over-length/normalization tests |
-| Health endpoint | `GET /health` | VERIFIED | Automated test plus Phase 3 local HTTP 200 on 2026-10-04 |
-| README | Accurate current documentation | IN PROGRESS | Phase 3 setup/run/loop/provider instructions; final results incomplete |
+| Health endpoint | `GET /health` | VERIFIED | Automated test plus Phase 4 local HTTP 200 on 2026-10-05 |
+| README | Accurate current documentation | IN PROGRESS | Phase 4 approval/checkpointer/run/test limitations documented; final results incomplete |
 | Demo | 5–10 minute MP4 showing end-to-end run and guardrail | NOT STARTED | None |
 | Presentation | 10+ slides covering required topics | NOT STARTED | None |
 | Evaluation report | Markdown, optionally exported to PDF | IN PROGRESS | Honest scaffold only; no results |

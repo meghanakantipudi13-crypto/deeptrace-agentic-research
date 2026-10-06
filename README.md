@@ -2,7 +2,7 @@
 
 DeepTrace is a developing production-ready agentic research and source-verification platform for CSCI 599 Assignment 4. A user will eventually submit a research question, review a generated plan, and—only after approving or modifying that plan—allow the system to iteratively retrieve, assess, verify, and synthesize evidence with traceable citations.
 
-This repository has completed **Phase 3: bounded iterative retrieval and self-correction**. The runnable application validates a question, plans research, retrieves and verifies evidence, uses a structured critic to detect plan-coverage gaps, conditionally revises queries, and performs at most one additional retrieval pass before citation-safe synthesis. HITL approval, persistent memory, the complete safety subsystem, deployment, and a production model remain unimplemented. Status claims are tracked in [RUBRIC_COMPLIANCE.md](RUBRIC_COMPLIANCE.md).
+This repository has completed **Phase 4: human-in-the-loop research approval**. The runnable application validates a question, generates a plan, and reaches a real LangGraph interrupt before any query generation or search. A validated human can approve, modify-and-approve, or reject the plan. Approved workflows resume the existing bounded iterative retrieval and citation-safe synthesis graph; rejected workflows perform zero search calls. Durable memory, the complete safety subsystem, deployment, and a production model remain unimplemented. Status claims are tracked in [RUBRIC_COMPLIANCE.md](RUBRIC_COMPLIANCE.md).
 
 ## Problem
 
@@ -29,13 +29,14 @@ The minimum planned workflow is:
 - Human-in-the-loop plan approval, modification, and cancellation
 - Cross-session long-term memory backed by durable cloud storage
 
-The first two are verified at the deterministic workflow level in Phase 3. HITL and durable memory remain targets. Production/live-provider verification is still outstanding; see the compliance tracker for exact evidence.
+The first three are verified locally with deterministic providers. Durable long-term memory remains a target. Production persistence and live-provider verification are still outstanding; see the compliance tracker for exact evidence.
 
 ## Current architecture and planned extensions
 
 - **Language:** Python 3.11
 - **API and UI host:** FastAPI with Jinja2. HTMX/server-sent events remain optional future additions when interactive approval/progress requires them.
-- **Orchestration:** LangGraph with typed state and explicit `plan → query → retrieve → verify → critic` stages. Conditional edges route sufficient evidence to synthesis or insufficient evidence through targeted query revision and another real retrieval pass.
+- **Orchestration:** LangGraph with typed state and explicit `plan → request approval → interrupt` stages before query generation. `Command(resume=...)` continues the same checkpointed thread into the Phase 3 retrieve/verify/critic/correct graph or routes rejection directly to cancellation.
+- **Phase 4 checkpointer:** LangGraph `InMemorySaver`, keyed by a UUID `thread_id`. It proves genuine interrupt/resume semantics for one running process but loses every workflow on restart and is not long-term memory.
 - **Current model provider:** a deterministic, credential-free development planner whose UI output is explicitly labeled simulated
 - **Default production model candidate:** Gemini through Vertex AI, behind the implemented `PlanModel` abstraction
 - **Search provider:** a `SearchProvider` interface with deterministic `.test` fixtures by default and a Tavily HTTP adapter when `TAVILY_API_KEY` is configured. The live adapter is not yet smoke-tested.
@@ -43,7 +44,7 @@ The first two are verified at the deterministic workflow level in Phase 3. HITL 
 - **Verification:** deterministic lexical relevance, evidence-length/support, plan-item mapping, instruction-like-content quarantine, and limited domain-category signals. These heuristics do not establish truth or comprehensive source quality.
 - **Critic and correction:** every plan item needs at least one accepted supportive source. Structured missing, weak, or rejected-evidence gaps generate up to two distinct follow-up queries. The maximum is two total retrieval passes (initial plus one correction) to bound cost and latency.
 - **Citations:** every emitted `[S#]` ID is validated against a retained source object before rendering.
-- **Future durable state:** an official LangGraph PostgreSQL checkpointer for mutable workflow/HITL state plus the required Google Cloud Storage bucket for evidence, reports, traces, and cross-session memory artifacts. Neither is implemented.
+- **Future durable state:** replace `InMemorySaver` with an official LangGraph PostgreSQL checkpointer for restart-safe workflow/HITL state plus the required Google Cloud Storage bucket for evidence, reports, traces, and cross-session memory artifacts. Neither production store is implemented.
 - **Evaluation:** repeatable custom harness with versioned fixtures and raw JSONL/CSV results
 - **Observability:** structured JSON events cover iteration number, critic decisions, gap counts, selected routes, follow-up queries, added/accepted evidence, termination reason, cumulative provider usage, and latency without logging external document contents. Cloud export remains future work.
 - **Deployment candidate:** the assignment-specific Google Cloud Run Instances + Hermes Agent path, pending instructor clarification documented in [docs/DEPLOYMENT_COMPLIANCE.md](docs/DEPLOYMENT_COMPLIANCE.md)
@@ -52,7 +53,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for component boundaries and st
 
 ## Safety and guardrails
 
-Retrieved content stays in typed source fields and cannot directly select graph edges, change iteration budgets, force synthesis, or create citation IDs. Trusted critic state controls routing. Obvious instruction-like text is annotated and excluded from synthesis, including attempts to mark evidence sufficient or change the loop. A delimiter contract exists for future model prompts. This is not the complete assignment safety subsystem, and the three required deployed attacks have not been run.
+Only a validated POST carrying an `approve`, `modify`, or `reject` decision can cross the approval checkpoint. Unknown, completed, cancelled, malformed, and duplicate resumes are rejected before research. Retrieved content and model output occur after this boundary and cannot approve a workflow. Existing retrieved-content isolation, trusted critic routing, iteration ceilings, and citation validation remain active. This is not the complete assignment safety subsystem, and the three required deployed attacks have not been run.
 
 ## Evaluation
 
@@ -97,7 +98,7 @@ The default planner and search provider are simulated and perform no external ca
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-The suite includes 21 tests. Three deterministic workflow scenarios prove immediate sufficiency, successful correction after a targeted second retrieval, and safe termination at the iteration budget. Additional coverage includes duplicate query suppression, cross-iteration source deduplication and retention, malicious routing instructions, citation integrity, provider invocation, Tavily request parsing, health/UI behavior, and all Phase 1/2 foundations.
+The suite includes 30 tests. Six checkpoint-level HITL scenarios prove a real interrupt with zero search calls, same-thread approval/resume, downstream use of a human-modified plan, rejection with zero retrieval, invalid resume handling, and duplicate approval idempotency; UI tests cover pause, approve, modify, and cancel. Phase 3 Scenarios A/B/C still prove immediate sufficiency, successful correction, and bounded insufficiency after explicit approval.
 
 ## Deployment
 
@@ -105,11 +106,14 @@ Not deployed. There is no live URL. Ordinary Cloud Run is not being treated as e
 
 ## Limitations
 
-- The default mode uses simulated plans and sources. No live Tavily call was made during Phase 3 verification because no credential was configured.
+- The default mode uses simulated plans and sources. No live Tavily call was made during Phase 4 verification because no credential was configured.
 - The preliminary synthesis is extractive and based on search snippets, not full-document analysis.
 - Relevance and quality signals are basic deterministic heuristics and cannot establish objective truth.
 - Correction is deterministic and limited to two total retrieval passes; conflict detection remains unimplemented beyond an explicit empty/limited signal because snippets do not encode normalized claim stances.
-- There is no approval checkpoint, persistence, complete safety subsystem, or evaluation harness.
+- `InMemorySaver` is process-local: pending workflows disappear on restart and cannot support multiple workers or cross-session history.
+- Duplicate resumes are serialized only inside one application instance; production idempotency requires transactional durable storage.
+- Phase 4 has no authentication, authorization, or CSRF subsystem; it assumes a trusted local user with the workflow URL. Those controls are required before deployment.
+- There is no durable persistence, long-term memory, complete safety subsystem, or evaluation harness.
 - The exact required relationship between DeepTrace and Hermes/OpenClaw needs instructor confirmation.
 - GitHub CLI, Docker, and Google Cloud CLI were not detected locally during Phase 0.
 

@@ -3,17 +3,17 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>DeepTrace · Iterative research</title>
+    <title>DeepTrace · Human-approved research</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
   </head>
   <body>
     <main class="shell">
       <header class="hero">
-        <div class="eyebrow">DeepTrace · Phase 3</div>
-        <h1>Trace a question through evidence-driven correction.</h1>
+        <div class="eyebrow">DeepTrace · Phase 4</div>
+        <h1>Approve the plan before research begins.</h1>
         <p>
-          DeepTrace performs bounded retrieval, checks evidence coverage, and revises
-          actual search queries when a trusted critic identifies a specific gap.
+          DeepTrace pauses at a real checkpoint after planning. Only an explicit human
+          approval can begin bounded retrieval, verification, and self-correction.
         </p>
       </header>
 
@@ -47,9 +47,9 @@
         <div class="panel-heading">
           <div>
             <span class="step-marker">02</span>
-            <h2 id="plan-heading">Initial research plan</h2>
+            <h2 id="plan-heading">{{ "Research Plan Awaiting Approval" if pending else "Research plan" }}</h2>
           </div>
-          <span class="status">Plan ready</span>
+          <span class="status">{{ "Awaiting human decision" if pending else "Plan ready" }}</span>
         </div>
 
         {% if research and (plan.is_simulated or research.search_is_simulated) %}
@@ -60,6 +60,11 @@
             Retrieval: {{ "simulated fixtures" if research.search_is_simulated else "real provider" }}
             ({{ research.search_provider_label }}). Simulated sources are not genuine web research.
           </span>
+        </div>
+        {% elif pending and plan.is_simulated %}
+        <div class="notice" role="status">
+          <strong>SIMULATED DEVELOPMENT MODE</strong>
+          <span>The proposed plan is simulated. Retrieval has not started and will use simulated fixtures after approval.</span>
         </div>
         {% elif plan.is_simulated %}
         <div class="notice" role="status">
@@ -91,7 +96,37 @@
           {% endfor %}
         </ol>
 
-        {% if not research %}
+        {% if pending %}
+        <div class="approval-gate" role="status">
+          <strong>Research has NOT started yet.</strong>
+          <span>No external research has been performed. Workflow {{ pending.workflow_id }} is paused at the LangGraph approval checkpoint.</span>
+        </div>
+        <form class="approval-form" action="/research/{{ pending.workflow_id }}/decision" method="post">
+          <fieldset>
+            <legend>Optional plan modifications</legend>
+            <p>Edit the fields below, then choose <strong>Approve Modified Plan</strong>. Evidence items may be separated by semicolons or new lines.</p>
+            {% for step in plan.steps %}
+            <div class="plan-editor">
+              <span>Plan item {{ step.order }}</span>
+              <label>Title<input name="step_title" maxlength="120" value="{{ step.title }}" required></label>
+              <label>Purpose<textarea name="step_purpose" rows="3" maxlength="500" required>{{ step.purpose }}</textarea></label>
+              <label>Evidence needed<textarea name="step_evidence" rows="3" required>{{ step.evidence_needed|join('; ') }}</textarea></label>
+            </div>
+            {% endfor %}
+          </fieldset>
+          <div class="approval-actions">
+            <button type="submit" name="decision" value="approve">Approve &amp; Research</button>
+            <button class="secondary" type="submit" name="decision" value="modify">Approve Modified Plan</button>
+            <button class="danger" type="submit" name="decision" value="reject" formnovalidate>Cancel</button>
+          </div>
+        </form>
+        {% elif cancelled %}
+        <div class="cancellation" role="status">
+          <strong>Research cancelled</strong>
+          <span>The plan was rejected. No search calls or research synthesis were performed.</span>
+        </div>
+        <p class="trace">Workflow: {{ cancelled.workflow_events|join(" → ") }}</p>
+        {% elif not research %}
         <div class="boundary">
           <strong>Phase 1 boundary reached</strong>
           <span>No sources were retrieved and no claims were verified.</span>
@@ -215,9 +250,10 @@
         </ul>
 
         <div class="boundary">
-          <strong>Phase 3 boundary reached</strong>
-          <span>Critic-driven retrieval is active and bounded. HITL, persistence, final safety testing, and deployment are not implemented.</span>
+          <strong>Phase 4 boundary reached</strong>
+          <span>Human approval and critic-driven retrieval are active. Durable persistence, long-term memory, final safety testing, and deployment are not implemented.</span>
         </div>
+        <p class="trace">Approval: {{ research.approval_decision }} · Plan modified: {{ research.plan_modified }}</p>
         <div class="metrics">
           <span>{{ research.usage.search_calls }} search calls</span>
           <span>{{ research.usage.search_results_received }} results received</span>

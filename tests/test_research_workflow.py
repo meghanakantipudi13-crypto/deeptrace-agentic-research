@@ -2,7 +2,13 @@ from __future__ import annotations
 
 import asyncio
 
-from app.models import PlanStep, ProviderSearchResult, ResearchPlan, SearchBatch
+from app.models import (
+    ApprovalResumePayload,
+    PlanStep,
+    ProviderSearchResult,
+    ResearchPlan,
+    SearchBatch,
+)
 from app.research_workflow import ResearchWorkflow
 
 
@@ -120,7 +126,18 @@ class ScenarioProvider:
 
 def _run(scenario: str):
     provider = ScenarioProvider(scenario)
-    result = asyncio.run(ResearchWorkflow(PhaseThreePlanModel(), provider).run(QUESTION))
+    workflow = ResearchWorkflow(PhaseThreePlanModel(), provider)
+
+    async def execute():
+        pending = await workflow.start(QUESTION)
+        assert pending.status == "awaiting_approval"
+        assert provider.calls == []
+        return await workflow.resume(
+            pending.workflow_id,
+            ApprovalResumePayload(decision="approve"),
+        )
+
+    result = asyncio.run(execute())
     return provider, result
 
 
@@ -128,6 +145,8 @@ def test_scenario_a_initial_evidence_is_sufficient() -> None:
     provider, result = _run("sufficient")
 
     assert result.status == "research_result_ready"
+    assert result.approval_decision == "approve"
+    assert result.plan_modified is False
     assert result.usage.retrieval_passes == 1
     assert result.usage.critic_invocations == 1
     assert result.usage.correction_iterations == 0
@@ -186,6 +205,11 @@ def test_graph_contains_real_conditional_correction_cycle() -> None:
     edges = {(edge.source, edge.target) for edge in graph.edges}
 
     assert {"critic", "revise_queries", "synthesize_research_result"}.issubset(nodes)
+    assert {"request_approval", "approval_checkpoint", "cancel_workflow"}.issubset(nodes)
+    assert ("create_plan", "request_approval") in edges
+    assert ("request_approval", "approval_checkpoint") in edges
+    assert ("approval_checkpoint", "generate_queries") in edges
+    assert ("approval_checkpoint", "cancel_workflow") in edges
     assert ("verify_evidence", "critic") in edges
     assert ("critic", "revise_queries") in edges
     assert ("critic", "synthesize_research_result") in edges

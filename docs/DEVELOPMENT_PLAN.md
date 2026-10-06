@@ -38,13 +38,15 @@ The explicitly approved Phase 2 scope moved retrieval/verification ahead of the 
 
 ## Phase 4 — Real HITL
 
-- **Objective:** Persist a generated plan and prevent protected work until approve/modify/cancel.
-- **Required evidence:** No retrieval before approval; modified plan requires approval of its revision; cancel stays terminal; resume after restart.
+- **Objective:** Pause a real graph after planning and prevent protected work until approve/modify/cancel.
+- **Components:** LangGraph `interrupt()` and `Command(resume=...)`, UUID thread IDs, local `InMemorySaver`, validated plan editor, approval router, cancellation state, duplicate/invalid resume controls, visible approval UI.
+- **Tests:** Six scenarios cover actual interrupt, zero pre-approval calls, same-thread approval, modified-plan downstream queries, zero-call rejection, unknown/malformed/duplicate/cancelled resume handling; Phase 3 Scenarios A/B/C run after explicit approval.
+- **Completion evidence:** 30-test suite plus local HTTP pause→approval→result and pause→cancel smoke tests. This verifies local HITL semantics only; restart persistence is Phase 5.
 
 ## Phase 5 — Durable cross-session memory
 
 - **Objective:** Recover history, reports, and resumable sessions after process restart.
-- **Components:** PostgreSQL/GCS adapters, local fakes, session list/detail UI, retention/redaction policy.
+- **Components:** Replace `InMemorySaver` with PostgreSQL checkpointing, add GCS artifact/memory adapters, session list/detail UI, transactional idempotency, retention/redaction policy.
 - **Rubric addressed:** Long-term memory and Cloud Run persistence constraint.
 - **Tests:** New-process recovery; optimistic concurrency; stale approval rejection; storage outage behavior.
 - **Completion evidence:** Restart test and PostgreSQL/GCS record/object metadata without secrets.

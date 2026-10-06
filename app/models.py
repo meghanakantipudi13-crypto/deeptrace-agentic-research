@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, TypedDict
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 MAX_QUESTION_LENGTH = 500
@@ -36,6 +36,55 @@ class ResearchPlan(BaseModel):
     limitations: list[str] = Field(default_factory=list, max_length=5)
 
 
+class ApprovalResumePayload(BaseModel):
+    """Validated human response supplied to the LangGraph interrupt."""
+
+    decision: Literal["approve", "modify", "reject"]
+    modified_steps: list[PlanStep] | None = Field(default=None, min_length=1, max_length=8)
+
+    @model_validator(mode="after")
+    def validate_decision_payload(self) -> "ApprovalResumePayload":
+        if self.decision == "modify" and not self.modified_steps:
+            raise ValueError("A modified plan must contain at least one valid plan item.")
+        if self.decision != "modify" and self.modified_steps is not None:
+            raise ValueError("Modified plan items are only valid with the modify decision.")
+        return self
+
+
+class ApprovalInterruptPayload(BaseModel):
+    """Safe structured context surfaced to a human at the checkpoint."""
+
+    workflow_id: str
+    question: str
+    proposed_plan: ResearchPlan
+    plan_item_count: int = Field(ge=1, le=8)
+    provider_mode: Literal["simulated", "real"]
+    explanation: str
+
+
+class PendingResearchResult(BaseModel):
+    """Public result returned only when the graph is genuinely interrupted."""
+
+    workflow_id: str
+    status: Literal["awaiting_approval"]
+    plan: ResearchPlan
+    approval_payload: ApprovalInterruptPayload
+    interrupt_id: str
+    workflow_events: list[str]
+
+
+class CancelledResearchResult(BaseModel):
+    """Terminal human-rejected workflow with no research output."""
+
+    workflow_id: str
+    status: Literal["cancelled"]
+    approval_decision: Literal["reject"]
+    question: str
+    plan: ResearchPlan
+    search_calls: int = Field(default=0, ge=0)
+    workflow_events: list[str]
+
+
 class ResearchState(TypedDict, total=False):
     """Minimal LangGraph state designed for later additive extension."""
 
@@ -44,6 +93,8 @@ class ResearchState(TypedDict, total=False):
     current_stage: str
     status: str
     research_plan: dict[str, Any]
+    approval_decision: str | None
+    plan_modified: bool
     search_queries: list[dict[str, Any]]
     active_search_queries: list[dict[str, Any]]
     sources: list[dict[str, Any]]
@@ -218,6 +269,8 @@ class ResearchResult(BaseModel):
     request_id: str
     status: str
     plan: ResearchPlan
+    approval_decision: Literal["approve", "modify"]
+    plan_modified: bool
     queries: list[SearchQuery]
     sources: list[Source]
     verifications: list[EvidenceVerification]

@@ -40,17 +40,22 @@ ResearchSession
 
 ## Enforced workflow
 
-### Current Phase 3 graph
+### Current Phase 4 graph
 
 ```text
-START -> start -> plan -> generate bounded queries -> retrieve
+START -> start -> plan -> request approval -> approval_checkpoint interrupt
+                                      PAUSED (zero search calls)
+                         approve/modify | reject
+                                        v
+                  generate bounded queries | cancel -> END
+                            -> retrieve
       -> normalize/deduplicate -> verify accumulated sources -> critic
           | sufficient / terminal reason -> citation-safe synthesis -> finish -> END
           | gap + budget remains -> revise gap-targeted queries
                                     -> retrieve -> verify -> critic
 ```
 
-The maximum is two total retrieval passes. The critic emits typed plan-coverage gaps and application code selects conditional edges. Retrieved content remains typed untrusted data: it cannot select routes, set sufficiency, alter counters, or increase the limit. Earlier evidence is retained and new URLs are deduplicated against the accumulated set. If the budget is exhausted or progress stalls, synthesis discloses unresolved gaps.
+The graph is compiled with local `InMemorySaver`; a UUID `thread_id` identifies the checkpoint. `interrupt()` surfaces a safe plan payload and `Command(resume=...)` supplies a validated human decision to that same thread. Only approve/modify can cross into query generation. The maximum remains two retrieval passes. Retrieved content occurs after approval and cannot select approval or research routes, set sufficiency, alter counters, or increase limits.
 
 ### Target full workflow
 
@@ -79,7 +84,8 @@ validate -> plan -> persist WAITING_FOR_APPROVAL
 
 - **Cloud SQL PostgreSQL:** future official LangGraph production checkpointer for mutable thread state, interrupt/resume, approval decisions, and idempotency.
 - **GCS:** future immutable/versioned evidence artifacts, reports, redacted traces, memory exports, and evaluation results. Bucket versioning and retention settings will be evaluated against cost and privacy requirements.
-- **Phases 1–3:** no checkpointer or long-term store. Graph runs are request-scoped; Phase 3 can loop in memory for at most two retrieval passes.
+- **Phase 4 local:** `InMemorySaver` checkpoints graph state within one Python process solely to prove interrupt/resume. It is erased on restart, is not shared across workers, and is not cross-session long-term memory.
+- **Phase 5 target:** replace it with the official PostgreSQL checkpointer, add restart-safe approvals and transactional idempotency, and persist versioned artifacts/memory exports to GCS.
 - **Local development later:** replaceable test adapters and possibly SQLite for persistence-specific development tests only. Passing local persistence tests will not verify cloud durability.
 
 GCS will not be used as a live SQLite filesystem or custom checkpointer unless a later decision supplies concurrency, atomicity, and restart evidence. Firestore is no longer the default because it would also require custom LangGraph checkpoint integration.

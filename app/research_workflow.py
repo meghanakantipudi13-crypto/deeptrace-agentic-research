@@ -1,20 +1,27 @@
-"""Bounded Phase 3 LangGraph retrieval, criticism, and self-correction workflow."""
+"""Phase 4 interruptible research workflow with bounded self-correction."""
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from time import perf_counter
-from uuid import uuid4
+from uuid import UUID, uuid4
 
+from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
+from langgraph.types import Command, interrupt
 
 from app.logging import log_event
 from app.models import (
     MAX_RESEARCH_ITERATIONS,
     MAX_RESULTS_PER_QUERY,
+    ApprovalInterruptPayload,
+    ApprovalResumePayload,
+    CancelledResearchResult,
     Citation,
     EvidenceSufficiency,
     EvidenceVerification,
+    PendingResearchResult,
     ResearchIterationTrace,
     ResearchPlan,
     ResearchResult,
@@ -35,8 +42,16 @@ from app.research import (
 from app.search.base import SearchProvider
 
 
+class WorkflowNotFoundError(LookupError):
+    """Raised when a workflow ID has no checkpoint in this process."""
+
+
+class WorkflowNotAwaitingApprovalError(RuntimeError):
+    """Raised for duplicate, completed, cancelled, or otherwise invalid resumes."""
+
+
 class ResearchWorkflow:
-    """Run retrieval and trusted criticism within a deterministic pass budget."""
+    """Pause after planning and resume only through a validated human decision."""
 
     def __init__(
         self,
@@ -51,9 +66,14 @@ class ResearchWorkflow:
             1, min(max_research_iterations, MAX_RESEARCH_ITERATIONS)
         )
         self._logger = logging.getLogger("deeptrace.research_workflow")
+        self._checkpointer = InMemorySaver()
+        self._resume_lock = asyncio.Lock()
         builder = StateGraph(ResearchState)
         builder.add_node("start_workflow", self._start_workflow)
         builder.add_node("create_plan", self._create_plan)
+        builder.add_node("request_approval", self._request_approval)
+        builder.add_node("approval_checkpoint", self._approval_checkpoint)
+        builder.add_node("cancel_workflow", self._cancel_workflow)
         builder.add_node("generate_queries", self._generate_queries)
         builder.add_node("retrieve_sources", self._retrieve_sources)
         builder.add_node("verify_evidence", self._verify_evidence)
@@ -63,7 +83,14 @@ class ResearchWorkflow:
         builder.add_node("finish_workflow", self._finish_workflow)
         builder.add_edge(START, "start_workflow")
         builder.add_edge("start_workflow", "create_plan")
-        builder.add_edge("create_plan", "generate_queries")
+        builder.add_edge("create_plan", "request_approval")
+        builder.add_edge("request_approval", "approval_checkpoint")
+        builder.add_conditional_edges(
+            "approval_checkpoint",
+            self._route_after_approval,
+            {"research": "generate_queries", "cancel": "cancel_workflow"},
+        )
+        builder.add_edge("cancel_workflow", END)
         builder.add_edge("generate_queries", "retrieve_sources")
         builder.add_edge("retrieve_sources", "verify_evidence")
         builder.add_edge("verify_evidence", "critic")
@@ -85,7 +112,7 @@ class ResearchWorkflow:
         )
         builder.add_edge("synthesize_research_result", "finish_workflow")
         builder.add_edge("finish_workflow", END)
-        self.graph = builder.compile()
+        self.graph = builder.compile(checkpointer=self._checkpointer)
 
     def _started(self, state: ResearchState, stage: str) -> float:
         log_event(
@@ -141,6 +168,133 @@ class ResearchWorkflow:
                 step_count=len(plan.steps),
             ),
             "workflow_events": [*state.get("workflow_events", []), "planning_completed"],
+        }
+
+    async def _request_approval(self, state: ResearchState) -> ResearchState:
+        started = self._started(state, "request_approval")
+        plan = ResearchPlan.model_validate(state["research_plan"])
+        log_event(
+            self._logger,
+            "approval_requested",
+            request_id=state["request_id"],
+            plan_item_count=len(plan.steps),
+        )
+        return {
+            "status": "awaiting_approval",
+            "current_stage": "request_approval",
+            "node_latencies_ms": self._completed(
+                state,
+                "request_approval",
+                started,
+                plan_item_count=len(plan.steps),
+            ),
+            "workflow_events": [
+                *state.get("workflow_events", []),
+                "approval_requested",
+                "workflow_interrupted",
+            ],
+        }
+
+    async def _approval_checkpoint(self, state: ResearchState) -> ResearchState:
+        plan = ResearchPlan.model_validate(state["research_plan"])
+        payload = ApprovalInterruptPayload(
+            workflow_id=state["request_id"],
+            question=state["question"],
+            proposed_plan=plan,
+            plan_item_count=len(plan.steps),
+            provider_mode=(
+                "simulated"
+                if plan.is_simulated or self._search_provider.is_simulated
+                else "real"
+            ),
+            explanation=(
+                "No external research has been performed. Approval will generate queries "
+                "and begin the bounded iterative retrieval workflow."
+            ),
+        )
+        response = interrupt(
+            payload.model_dump(mode="json"),
+            response_schema=ApprovalResumePayload,
+        )
+        decision = ApprovalResumePayload.model_validate(response)
+        plan_modified = decision.decision == "modify"
+        if plan_modified:
+            plan = ResearchPlan.model_validate(
+                {
+                    **plan.model_dump(mode="json"),
+                    "steps": [
+                        step.model_dump(mode="json")
+                        for step in decision.modified_steps or []
+                    ],
+                }
+            )
+        events = [*state.get("workflow_events", []), "approval_received"]
+        if plan_modified:
+            events.append("plan_modified")
+            log_event(
+                self._logger,
+                "plan_modified",
+                request_id=state["request_id"],
+                plan_item_count=len(plan.steps),
+            )
+        if decision.decision == "reject":
+            events.append("workflow_rejected")
+            status = "rejected"
+            log_event(
+                self._logger,
+                "workflow_rejected",
+                request_id=state["request_id"],
+            )
+        else:
+            events.append("workflow_resumed")
+            status = "approved"
+            log_event(
+                self._logger,
+                "workflow_resumed",
+                request_id=state["request_id"],
+                decision=decision.decision,
+            )
+        log_event(
+            self._logger,
+            "approval_received",
+            request_id=state["request_id"],
+            decision=decision.decision,
+            plan_modified=plan_modified,
+            plan_item_count=len(plan.steps),
+        )
+        return {
+            "research_plan": plan.model_dump(mode="json"),
+            "approval_decision": decision.decision,
+            "plan_modified": plan_modified,
+            "status": status,
+            "current_stage": "approval_checkpoint",
+            "workflow_events": events,
+        }
+
+    def _route_after_approval(self, state: ResearchState) -> str:
+        return "cancel" if state.get("approval_decision") == "reject" else "research"
+
+    async def _cancel_workflow(self, state: ResearchState) -> ResearchState:
+        started = self._started(state, "cancel_workflow")
+        log_event(
+            self._logger,
+            "workflow_cancelled",
+            request_id=state["request_id"],
+            search_calls=state.get("usage", {}).get("search_calls", 0),
+        )
+        return {
+            "status": "cancelled",
+            "current_stage": "cancel_workflow",
+            "node_latencies_ms": self._completed(
+                state,
+                "cancel_workflow",
+                started,
+                search_calls=state.get("usage", {}).get("search_calls", 0),
+            ),
+            "workflow_events": [
+                *state.get("workflow_events", []),
+                "workflow_cancelled",
+            ],
         }
 
     async def _generate_queries(self, state: ResearchState) -> ResearchState:
@@ -444,15 +598,27 @@ class ResearchWorkflow:
             "workflow_events": [*state.get("workflow_events", []), "workflow_completed"],
         }
 
-    async def run(self, question: str) -> ResearchResult:
-        request_id = str(uuid4())
-        started = perf_counter()
-        state = await self.graph.ainvoke(
+    def _config(self, workflow_id: str) -> dict[str, dict[str, str]]:
+        return {"configurable": {"thread_id": workflow_id}}
+
+    async def start(self, question: str) -> PendingResearchResult:
+        """Create a thread and return only after LangGraph has genuinely interrupted."""
+
+        workflow_id = str(uuid4())
+        config = self._config(workflow_id)
+        log_event(
+            self._logger,
+            "workflow_created",
+            request_id=workflow_id,
+        )
+        await self.graph.ainvoke(
             {
-                "request_id": request_id,
+                "request_id": workflow_id,
                 "question": question,
                 "status": "received",
                 "current_stage": "received",
+                "approval_decision": None,
+                "plan_modified": False,
                 "retrieval_iteration": 1,
                 "max_research_iterations": self._max_research_iterations,
                 "termination_reason": None,
@@ -461,15 +627,113 @@ class ResearchWorkflow:
                 "iteration_traces": [],
                 "usage": {},
                 "node_latencies_ms": {},
-                "workflow_events": [],
-            }
+                "workflow_events": ["workflow_created"],
+            },
+            config,
         )
-        elapsed_ms = round((perf_counter() - started) * 1000, 3)
+        pending = await self.get_pending(workflow_id)
+        log_event(
+            self._logger,
+            "workflow_interrupted",
+            request_id=workflow_id,
+            interrupt_id=pending.interrupt_id,
+        )
+        return pending
+
+    async def get_pending(self, workflow_id: str) -> PendingResearchResult:
+        """Read and validate an interrupted workflow without advancing it."""
+
+        try:
+            UUID(workflow_id)
+        except (ValueError, TypeError) as error:
+            raise WorkflowNotFoundError("Unknown workflow ID.") from error
+        config = self._config(workflow_id)
+        snapshot = await self.graph.aget_state(config)
+        state = snapshot.values
+        if not state:
+            raise WorkflowNotFoundError("Unknown workflow ID.")
+        interrupts = [item for task in snapshot.tasks for item in task.interrupts]
+        if (
+            state.get("status") != "awaiting_approval"
+            or "approval_checkpoint" not in snapshot.next
+            or len(interrupts) != 1
+        ):
+            log_event(
+                self._logger,
+                "duplicate_resume_rejected",
+                request_id=workflow_id,
+                current_status=state.get("status", "unknown"),
+            )
+            raise WorkflowNotAwaitingApprovalError(
+                "Workflow is not awaiting approval."
+            )
+        approval_payload = ApprovalInterruptPayload.model_validate(interrupts[0].value)
+        return PendingResearchResult(
+            workflow_id=workflow_id,
+            status="awaiting_approval",
+            plan=ResearchPlan.model_validate(state["research_plan"]),
+            approval_payload=approval_payload,
+            interrupt_id=interrupts[0].id,
+            workflow_events=state["workflow_events"],
+        )
+
+    async def resume(
+        self,
+        workflow_id: str,
+        approval: ApprovalResumePayload,
+    ) -> ResearchResult | CancelledResearchResult:
+        """Resume one interrupted thread exactly once after integrity checks."""
+
+        try:
+            UUID(workflow_id)
+        except (ValueError, TypeError) as error:
+            raise WorkflowNotFoundError("Unknown workflow ID.") from error
+        config = self._config(workflow_id)
+        async with self._resume_lock:
+            snapshot = await self.graph.aget_state(config)
+            state = snapshot.values
+            if not state:
+                raise WorkflowNotFoundError("Unknown workflow ID.")
+            has_interrupt = any(task.interrupts for task in snapshot.tasks)
+            if (
+                state.get("status") != "awaiting_approval"
+                or "approval_checkpoint" not in snapshot.next
+                or not has_interrupt
+            ):
+                log_event(
+                    self._logger,
+                    "duplicate_resume_rejected",
+                    request_id=workflow_id,
+                    current_status=state.get("status", "unknown"),
+                )
+                raise WorkflowNotAwaitingApprovalError(
+                    "Workflow is not awaiting approval."
+                )
+            state = await self.graph.ainvoke(
+                Command(resume=approval.model_dump(mode="json")),
+                config,
+            )
+        if state["status"] == "cancelled":
+            return CancelledResearchResult(
+                workflow_id=workflow_id,
+                status="cancelled",
+                approval_decision="reject",
+                question=state["question"],
+                plan=ResearchPlan.model_validate(state["research_plan"]),
+                search_calls=state.get("usage", {}).get("search_calls", 0),
+                workflow_events=state["workflow_events"],
+            )
+        return self._build_research_result(state)
+
+    def _build_research_result(self, state: ResearchState) -> ResearchResult:
         usage = state.get("usage", {})
+        elapsed_ms = round(sum(state.get("node_latencies_ms", {}).values()), 3)
         return ResearchResult(
-            request_id=request_id,
+            request_id=state["request_id"],
             status=state["status"],
             plan=ResearchPlan.model_validate(state["research_plan"]),
+            approval_decision=state["approval_decision"],
+            plan_modified=state.get("plan_modified", False),
             queries=[SearchQuery.model_validate(item) for item in state["search_queries"]],
             sources=[Source.model_validate(item) for item in state["sources"]],
             verifications=[

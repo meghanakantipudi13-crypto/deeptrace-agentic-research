@@ -42,11 +42,26 @@ body {
 label { display: block; margin-bottom: 10px; color: var(--muted); font-size: 0.92rem; }
 textarea { width: 100%; resize: vertical; min-height: 130px; padding: 16px; border: 1px solid rgba(237, 248, 241, 0.15); border-radius: 13px; outline: none; background: rgba(2, 9, 7, 0.72); color: var(--ink); font: inherit; line-height: 1.55; }
 textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(115, 242, 167, 0.12); }
+input { width: 100%; padding: 12px; border: 1px solid rgba(237, 248, 241, 0.15); border-radius: 10px; outline: none; background: rgba(2, 9, 7, 0.72); color: var(--ink); font: inherit; }
+input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(115, 242, 167, 0.12); }
 button { margin-top: 16px; padding: 13px 18px; border: 0; border-radius: 11px; background: var(--accent); color: #052013; font: inherit; font-weight: 750; cursor: pointer; }
 button:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .error { margin: 10px 0 0; color: var(--error); }
 .notice, .boundary { display: flex; flex-direction: column; gap: 5px; margin: 0 0 24px; padding: 15px 17px; border: 1px solid rgba(255, 216, 137, 0.28); border-radius: 12px; background: rgba(255, 216, 137, 0.07); color: var(--warning); }
 .notice span, .boundary span { color: var(--muted); font-size: 0.9rem; }
+.approval-gate, .cancellation { display: flex; flex-direction: column; gap: 6px; margin: 0 0 20px; padding: 17px; border: 1px solid rgba(255, 216, 137, 0.35); border-radius: 12px; background: rgba(255, 216, 137, 0.08); color: var(--warning); }
+.approval-gate span, .cancellation span { color: var(--muted); }
+.cancellation { border-color: rgba(255, 170, 163, 0.3); color: var(--error); }
+.approval-form fieldset { margin: 0; padding: 0; border: 0; }
+.approval-form legend { font-size: 1.05rem; font-weight: 750; }
+.approval-form fieldset > p { color: var(--muted); line-height: 1.5; }
+.plan-editor { display: grid; gap: 10px; margin-top: 16px; padding: 16px; border: 1px solid var(--panel-border); border-radius: 12px; }
+.plan-editor > span { color: var(--accent); font-size: 0.78rem; font-weight: 750; text-transform: uppercase; }
+.plan-editor label { margin: 0; }
+.plan-editor label input, .plan-editor label textarea { margin-top: 6px; }
+.approval-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.approval-actions .secondary { background: var(--warning); }
+.approval-actions .danger { background: var(--error); }
 .objective { padding: 18px; border-radius: 12px; background: rgba(115, 242, 167, 0.06); }
 .objective p { margin: 8px 0 0; line-height: 1.55; }
 .plan-list { margin: 28px 0; padding: 0; list-style: none; }

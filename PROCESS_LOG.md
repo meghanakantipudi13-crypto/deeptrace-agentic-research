@@ -43,6 +43,14 @@ The final submission requires a factual 200–300 word narrative per team member
 - Added deterministic Scenarios A, B, and C. They prove immediate sufficiency, a malicious/insufficient first pass followed by targeted successful retrieval, and safe budget exhaustion. The complete suite passed 21 tests. Local HTTP smoke checks returned 200 for health, home, and research and rendered the Phase 3 trace and termination state.
 - Updated the UI to expose iteration counts, query causes, new/accepted sources, critic decisions, selected route, and termination reason without displaying hidden reasoning.
 
+### 2026-10-05 — Phase 4 human-in-the-loop approval
+
+- Reconfirmed the clean Phase 3 commit and all 21 baseline tests. Reviewed the installed LangGraph 1.2.12 APIs and current official interrupt, command-resume, thread, and in-memory checkpointer documentation.
+- Compiled the research graph with `InMemorySaver`, inserted request/interrupt nodes after planning, and used a UUID `thread_id` to resume the exact checkpoint with `Command(resume=...)`. Query generation and every search-related node remain downstream of the approval router.
+- Added schema-validated approve, modify, and reject decisions. Human modifications replace the plan steps used by query generation. Rejection routes directly to a terminal cancelled state with zero search calls and no synthetic result.
+- Added one-instance resume serialization and checkpoint-state validation to reject unknown, completed, cancelled, malformed, or duplicate approvals. Documented that this is not transactional multi-worker idempotency or durable memory.
+- Added six checkpoint-level HITL scenarios and approval UI tests while preserving the approved Phase 3 self-correction scenarios. The suite passed 30 tests. Local HTTP smoke checks showed an interrupted page with zero search calls, successful same-workflow approval followed by a result, and cancellation with zero search calls and no result.
+
 ## Final per-member narrative
 
 Not yet written. Replace this section near submission time with 200–300 factual words per team member based on the notes above and subsequent dated entries.

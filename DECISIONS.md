@@ -24,7 +24,7 @@ Statuses distinguish accepted architecture from later implementation. An accepte
 
 ## ADR-003 — Use LangGraph for explicit bounded orchestration
 
-- **Status:** Accepted; Phase 3 conditional correction graph implemented without persistence
+- **Status:** Accepted; Phase 4 interrupt/resume plus conditional correction graph implemented with local-only checkpointing
 - **Context:** Planning, pausing, correction, and resumption must affect execution and be testable.
 - **Options considered:** Hand-written state machine; generic agent loop; LangGraph.
 - **Decision:** LangGraph with typed state, explicit nodes/routes, persisted stage transitions, and deterministic iteration limits.
@@ -74,7 +74,7 @@ Statuses distinguish accepted architecture from later implementation. An accepte
 
 ## ADR-008 — Use cloud-native structured observability
 
-- **Status:** Phase 3 iteration/critic/route events and raw usage counters implemented; cloud export proposed
+- **Status:** Phase 4 approval/interrupt/resume plus iteration/critic/route events implemented; cloud export proposed
 - **Context:** Traces must demonstrate workflow transitions without leaking secrets or full sensitive content.
 - **Options considered:** Plain logs; LangSmith only; structured event model exported to Cloud Logging/Monitoring.
 - **Decision:** Emit redacted JSON events with request/session IDs, stage, attempt, decision codes, latency, token counts, provider calls, and guardrail events. Build a Cloud Monitoring dashboard and at least one failure/latency alert. External tracing remains optional.
@@ -91,3 +91,14 @@ Statuses distinguish accepted architecture from later implementation. An accepte
 - **Rationale:** Two passes are sufficient to prove real correction while placing a small deterministic ceiling on search calls, latency, and exposure to malicious content. Later measured evaluation may justify changing the constant.
 - **Rubric impact:** Provides execution-changing self-correction and safe bounded termination evidence.
 - **Tradeoffs:** One correction may be insufficient for difficult live research; the current critic uses deterministic coverage heuristics and cannot robustly detect semantic conflicts.
+
+## ADR-010 — Use LangGraph interrupt/Command with InMemorySaver for Phase 4
+
+- **Status:** Accepted and locally verified on LangGraph 1.2.12
+- **Context:** The approval gate must pause actual graph execution after planning and before query generation, while Phase 4 explicitly excludes production persistence.
+- **Options considered:** Frontend-only flag; return-and-rerun simulation; deprecated node interrupt APIs; current `interrupt()`/`Command(resume=...)` with in-memory, SQLite, or PostgreSQL checkpointing.
+- **Decision:** Compile the graph with `InMemorySaver`, invoke it with a UUID `thread_id`, call `interrupt()` inside `approval_checkpoint`, and resume the same thread with a schema-validated `Command(resume=...)`. Route `approve` and `modify` to query generation; route `reject` directly to cancellation. Serialize resume handling with one application-instance lock and reject any thread not actively interrupted.
+- **Versioned references:** LangGraph 1.2.12 [`interrupt()`](https://reference.langchain.com/python/langgraph/types/interrupt) and [`InMemorySaver`](https://reference.langchain.com/python/langgraph/checkpoint/memory/InMemorySaver) references reviewed on 2026-10-05.
+- **Rationale:** This is the smallest checkpointer supported by the installed version and directly proves LangGraph pause/resume semantics without adding Phase 5 infrastructure. It follows the current official API rather than deprecated `NodeInterrupt` patterns.
+- **Rubric impact:** Verifies local HITL semantics, plan modification affecting execution, zero retrieval before approval, and safe rejection/duplicate handling.
+- **Tradeoffs:** Checkpoints disappear on restart, are unavailable to other processes, and do not provide transactional multi-worker idempotency. Phase 5 must replace this with the selected PostgreSQL checkpointer and add restart/concurrency evidence; GCS remains required for durable artifacts and long-term memory.

@@ -1,6 +1,6 @@
 # DeepTrace Evaluation Report
 
-**Status:** Methodology scaffold plus deterministic Phase 3 workflow verification. No quantitative benchmark or deployed-system evaluation has been run.
+**Status:** Methodology scaffold plus deterministic Phase 3 and local Phase 4 workflow verification. No quantitative benchmark or deployed-system evaluation has been run.
 
 ## Evaluation objective
 
@@ -50,6 +50,10 @@ No results. Do not interpret this scaffold as evidence of success.
 
 The automated suite includes three fixed-provider routing scenarios in `tests/test_research_workflow.py`: initial evidence sufficient, initial evidence insufficient followed by successful targeted retrieval, and evidence still insufficient at the two-pass budget. These are pass/fail component and graph-integration tests, not a representative research-quality sample, live-provider evaluation, or quantitative benchmark. Their purpose is to establish that critic output changes actual graph execution and that termination is bounded. Final evaluation must run a versioned case set against the deployed build and report aggregate metrics separately.
 
+## Phase 4 local HITL verification
+
+Six deterministic tests in `tests/test_hitl_workflow.py` inspect the LangGraph interrupt/checkpoint and verify zero search calls before approval, same-thread resume, human plan changes affecting downstream queries, zero-call rejection, invalid resume rejection, and duplicate idempotency. They verify local workflow semantics with `InMemorySaver`; they do not measure human usability, prove restart persistence, or establish multi-worker production correctness.
+
 ## Required adversarial tests
 
 The exact final payloads and actual outputs will be stored only after execution. Each record must include test ID, date, injection point, exact payload, expected safe behavior, actual response, trace ID/artifact, pass/fail, responsible guardrail, and limitation.
@@ -70,4 +74,4 @@ Not yet measured. Final analysis must use actual token counts, model calls, sear
 
 ## Known limitations
 
-The quantitative harness, representative dataset, production providers, persistence/HITL features, and deployment do not yet exist. The deterministic critic uses plan coverage and lexical support heuristics; conflict detection is explicitly limited because current snippets do not carry normalized claim stances. The methodology may change after pilot testing; changes will be versioned and explained.
+The quantitative harness, representative dataset, production providers, durable persistence, long-term memory, and deployment do not yet exist. Local HITL checkpoints vanish on restart. The deterministic critic uses plan coverage and lexical support heuristics; conflict detection is explicitly limited because current snippets do not carry normalized claim stances. The methodology may change after pilot testing; changes will be versioned and explained.
