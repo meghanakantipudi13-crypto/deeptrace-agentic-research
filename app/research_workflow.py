@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import UTC, datetime
 from time import perf_counter
 from uuid import UUID, uuid4
 
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, interrupt
 
@@ -59,6 +61,7 @@ class ResearchWorkflow:
         search_provider: SearchProvider,
         *,
         max_research_iterations: int = MAX_RESEARCH_ITERATIONS,
+        checkpointer: BaseCheckpointSaver | None = None,
     ) -> None:
         self._plan_model = plan_model
         self._search_provider = search_provider
@@ -66,7 +69,7 @@ class ResearchWorkflow:
             1, min(max_research_iterations, MAX_RESEARCH_ITERATIONS)
         )
         self._logger = logging.getLogger("deeptrace.research_workflow")
-        self._checkpointer = InMemorySaver()
+        self._checkpointer = checkpointer or InMemorySaver()
         self._resume_lock = asyncio.Lock()
         builder = StateGraph(ResearchState)
         builder.add_node("start_workflow", self._start_workflow)
@@ -614,6 +617,7 @@ class ResearchWorkflow:
         await self.graph.ainvoke(
             {
                 "request_id": workflow_id,
+                "created_at": datetime.now(UTC).isoformat(),
                 "question": question,
                 "status": "received",
                 "current_stage": "received",
@@ -722,6 +726,7 @@ class ResearchWorkflow:
                 plan=ResearchPlan.model_validate(state["research_plan"]),
                 search_calls=state.get("usage", {}).get("search_calls", 0),
                 workflow_events=state["workflow_events"],
+                created_at=state["created_at"],
             )
         return self._build_research_result(state)
 
@@ -730,6 +735,7 @@ class ResearchWorkflow:
         elapsed_ms = round(sum(state.get("node_latencies_ms", {}).values()), 3)
         return ResearchResult(
             request_id=state["request_id"],
+            created_at=state["created_at"],
             status=state["status"],
             plan=ResearchPlan.model_validate(state["research_plan"]),
             approval_decision=state["approval_decision"],

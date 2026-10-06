@@ -51,6 +51,14 @@ The final submission requires a factual 200–300 word narrative per team member
 - Added one-instance resume serialization and checkpoint-state validation to reject unknown, completed, cancelled, malformed, or duplicate approvals. Documented that this is not transactional multi-worker idempotency or durable memory.
 - Added six checkpoint-level HITL scenarios and approval UI tests while preserving the approved Phase 3 self-correction scenarios. The suite passed 30 tests. Local HTTP smoke checks showed an interrupted page with zero search calls, successful same-workflow approval followed by a result, and cancellation with zero search calls and no result.
 
+### 2026-10-05 — Phase 5 durable cross-session research memory
+
+- Reconfirmed `main`, clean synchronization at `824dc94`, and all 30 baseline tests. Re-evaluated official LangGraph checkpoint choices and kept PostgreSQL plus GCS because graph checkpoints and user-facing memory have different consistency and access requirements.
+- Added a typed `ResearchMemoryRepository`, schema-v1 terminal records, atomic filesystem storage, and a GCS provider using canonical UUID object names, Application Default Credentials, a 1 MB cap, and create-only generation preconditions. Completed runs retain bounded useful output; cancelled runs retain no fabricated report; failed/incomplete runs are not promoted to history.
+- Added `/history` list/detail pages and automatic terminal-session saves. Structured events cover memory saves, loads, lists, failures, and checkpoint backend selection without logging report content.
+- Added configurable in-memory, official async SQLite, and official async PostgreSQL checkpoint lifecycles. SQLite proved that a pending real interrupt survives saver/workflow recreation and resumes the same UUID. PostgreSQL and live GCS remain implemented but unverified because no infrastructure was configured.
+- Added long-term-memory Scenarios A–G, mocked GCS adapter tests, history UI tests, and restart-safe HITL coverage while preserving all prior workflow tests. The suite reached 46 passing tests before final verification.
+
 ## Final per-member narrative
 
 Not yet written. Replace this section near submission time with 200–300 factual words per team member based on the notes above and subsequent dated entries.

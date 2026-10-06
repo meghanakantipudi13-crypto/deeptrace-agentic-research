@@ -24,6 +24,9 @@ body {
 
 .shell { width: min(940px, calc(100% - 32px)); margin: 0 auto; padding: 72px 0 96px; }
 .hero { max-width: 760px; margin-bottom: 36px; }
+nav { display: flex; gap: 16px; margin-bottom: 28px; }
+a { color: var(--accent); }
+nav a { font-weight: 700; text-decoration: none; }
 .eyebrow, .step-marker, .objective > span, .evidence > span {
   color: var(--accent);
   font-size: 0.75rem;
@@ -104,6 +107,14 @@ button:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .iteration-list p { color: var(--muted); }
 .iteration-list ul { color: var(--warning); line-height: 1.55; }
 .iteration-list small { color: #78988a; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.history-list { margin: 0; padding: 0; list-style: none; }
+.history-list li { padding: 20px 0; border-top: 1px solid var(--panel-border); }
+.history-list h2 { margin: 12px 0 6px; }
+.history-list p { margin: 0; color: var(--muted); }
+.record-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
+.record-meta div { padding: 12px; border-radius: 10px; background: rgba(115, 242, 167, 0.05); }
+.record-meta dt { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; }
+.record-meta dd { margin: 5px 0 0; overflow-wrap: anywhere; }
 
 @media (max-width: 620px) {
   .shell { padding-top: 44px; }

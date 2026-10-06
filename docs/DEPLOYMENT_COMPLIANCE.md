@@ -33,12 +33,19 @@ The assignment says the preferred path must use “Google Cloud Run Instances wi
 - Merely documenting Hermes/OpenClaw without running it.
 - Multiple LangGraph nodes described as multi-agent A2A.
 
+## Phase 5 persistence implementation status
+
+- `DEEPTRACE_MEMORY_BACKEND=gcs` selects the implemented GCS research-memory adapter and requires `DEEPTRACE_GCS_BUCKET`. It uses Google Application Default Credentials; no service-account key is stored in the repository.
+- `DEEPTRACE_CHECKPOINT_BACKEND=postgres` selects official LangGraph `AsyncPostgresSaver` for the FastAPI lifespan and requires `DEEPTRACE_POSTGRES_URI`. Controlled first-run migrations use `DEEPTRACE_POSTGRES_SETUP=true`.
+- Local filesystem research memory and official async SQLite checkpoints have verified restart behavior, but neither is acceptable Cloud Run durable production storage.
+- GCS is mock-tested only; PostgreSQL imports/configuration are checked only. No bucket, database, Cloud Run Instance, IAM role, retention policy, or multi-worker race has been live-tested, so both production integrations remain **IMPLEMENTED — UNVERIFIED**.
+
 ## Evidence required before marking verified
 
 - Instructor response or unambiguous course clarification.
 - Infrastructure/deployment configuration committed without secrets.
 - Deployment command/output tied to a commit and revision.
-- Restart persistence test using GCS-backed state.
+- Restart persistence tests using GCS research memory and PostgreSQL pending workflow state.
 - Monitoring dashboard/log evidence and alert test.
 - External smoke test of the live grader URL.
 - Secret scan and least-privilege service-account review.

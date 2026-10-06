@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Literal, TypedDict
 
 from pydantic import BaseModel, Field, model_validator
@@ -83,12 +84,14 @@ class CancelledResearchResult(BaseModel):
     plan: ResearchPlan
     search_calls: int = Field(default=0, ge=0)
     workflow_events: list[str]
+    created_at: datetime
 
 
 class ResearchState(TypedDict, total=False):
     """Minimal LangGraph state designed for later additive extension."""
 
     request_id: str
+    created_at: str
     question: str
     current_stage: str
     status: str
@@ -267,6 +270,7 @@ class ResearchResult(BaseModel):
     """Validated result returned after the bounded Phase 3 research loop."""
 
     request_id: str
+    created_at: datetime
     status: str
     plan: ResearchPlan
     approval_decision: Literal["approve", "modify"]

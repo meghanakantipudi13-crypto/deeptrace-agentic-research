@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DeepTrace · Saved research</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <nav><a href="/">New research</a><a href="/history">Research history</a></nav>
+        <div class="eyebrow">DeepTrace · Saved research record</div>
+        <h1>{{ record.question if record else "Research record unavailable" }}</h1>
+        {% if record %}<p>Session {{ record.session_id }} · schema v{{ record.schema_version }}</p>{% endif %}
+      </header>
+      {% if error %}<section class="panel"><p class="error" role="alert">{{ error }}</p></section>{% endif %}
+      {% if record %}
+      <section class="panel">
+        <div class="panel-heading"><h2>Status</h2><span class="verdict {{ 'accepted' if record.status == 'completed' else 'rejected' }}">{{ record.status }}</span></div>
+        <dl class="record-meta">
+          <div><dt>Created</dt><dd>{{ record.created_at }}</dd></div>
+          <div><dt>Stored</dt><dd>{{ record.stored_at }}</dd></div>
+          <div><dt>Provider</dt><dd>{{ record.provider_label }} ({{ record.provider_mode }})</dd></div>
+          <div><dt>Termination</dt><dd>{{ record.termination_reason|replace('_', ' ') }}</dd></div>
+          <div><dt>Approval</dt><dd>{{ record.approval_decision }} · modified: {{ record.plan_modified }}</dd></div>
+        </dl>
+      </section>
+      <section class="panel">
+        <h2>Approved plan</h2>
+        <ol class="plan-list">{% for step in record.plan.steps %}<li><div class="step-number">{{ "%02d"|format(step.order) }}</div><div><h3>{{ step.title }}</h3><p>{{ step.purpose }}</p></div></li>{% endfor %}</ol>
+      </section>
+      {% if record.status == 'completed' %}
+      <section class="panel result">
+        <h2>Saved report</h2>
+        <p class="summary">{{ record.report.summary }}</p>
+        <ul class="claim-list">{% for claim in record.report.claims %}<li>{{ claim.text }} {% for citation_id in claim.citation_ids %}<strong>[{{ citation_id }}]</strong>{% endfor %}</li>{% endfor %}</ul>
+        <h3>Citations</h3>
+        <ul class="citation-list">{% for citation in record.citations %}<li><strong>[{{ citation.citation_id }}]</strong> {{ citation.title }} — {{ citation.url }}</li>{% else %}<li>No citations were saved.</li>{% endfor %}</ul>
+        <h3>Source metadata</h3>
+        <ul class="citation-list">{% for source in record.sources %}<li><strong>{{ source.source_id }}</strong> {{ source.title }} — {{ source.provider }}</li>{% endfor %}</ul>
+      </section>
+      {% else %}
+      <section class="panel cancellation"><strong>Research was cancelled</strong><span>No retrieval, sources, citations, or report were stored.</span></section>
+      {% endif %}
+      {% endif %}
+    </main>
+  </body>
+</html>

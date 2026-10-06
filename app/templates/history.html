@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DeepTrace · Research history</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <nav><a href="/">New research</a><a href="/history">Research history</a></nav>
+        <div class="eyebrow">DeepTrace · Durable memory</div>
+        <h1>Research history</h1>
+        <p>Completed and cancelled workflows are labeled explicitly. Cancelled records never contain a fabricated report.</p>
+      </header>
+      <section class="panel">
+        {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+        {% if sessions %}
+        <ol class="history-list">
+          {% for session in sessions %}
+          <li>
+            <div>
+              <span class="verdict {{ 'accepted' if session.status == 'completed' else 'rejected' }}">{{ session.status }}</span>
+              <h2><a href="/history/{{ session.session_id }}">{{ session.question }}</a></h2>
+              <p>{{ session.created_at }} · {{ session.provider_mode }} · {{ session.termination_reason|replace('_', ' ') }}{% if session.retrieval_passes is not none %} · {{ session.retrieval_passes }} retrieval pass{{ '' if session.retrieval_passes == 1 else 'es' }}{% endif %}</p>
+            </div>
+          </li>
+          {% endfor %}
+        </ol>
+        {% elif not error %}<p>No durable research records have been saved yet.</p>{% endif %}
+      </section>
+    </main>
+  </body>
+</html>

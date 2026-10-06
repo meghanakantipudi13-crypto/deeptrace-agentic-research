@@ -40,7 +40,7 @@ ResearchSession
 
 ## Enforced workflow
 
-### Current Phase 4 graph
+### Current Phase 5 graph
 
 ```text
 START -> start -> plan -> request approval -> approval_checkpoint interrupt
@@ -55,7 +55,7 @@ START -> start -> plan -> request approval -> approval_checkpoint interrupt
                                     -> retrieve -> verify -> critic
 ```
 
-The graph is compiled with local `InMemorySaver`; a UUID `thread_id` identifies the checkpoint. `interrupt()` surfaces a safe plan payload and `Command(resume=...)` supplies a validated human decision to that same thread. Only approve/modify can cross into query generation. The maximum remains two retrieval passes. Retrieved content occurs after approval and cannot select approval or research routes, set sufficiency, alter counters, or increase limits.
+The graph accepts a configured LangGraph saver; a UUID `thread_id` identifies the checkpoint. `interrupt()` surfaces a safe plan payload and `Command(resume=...)` supplies a validated human decision to that same thread. Only approve/modify can cross into query generation. The maximum remains two retrieval passes. Retrieved content occurs after approval and cannot select approval or research routes, set sufficiency, alter counters, or increase limits.
 
 ### Target full workflow
 
@@ -80,15 +80,15 @@ validate -> plan -> persist WAITING_FOR_APPROVAL
 
 `WAITING_FOR_APPROVAL` cannot route to retrieval. A modified plan increments the revision and requires explicit approval of that revision. On exhausted budgets, synthesis may only state evidence-supported conclusions and disclose unresolved gaps.
 
-## Persistence plan
+## Persistence architecture
 
-- **Cloud SQL PostgreSQL:** future official LangGraph production checkpointer for mutable thread state, interrupt/resume, approval decisions, and idempotency.
-- **GCS:** future immutable/versioned evidence artifacts, reports, redacted traces, memory exports, and evaluation results. Bucket versioning and retention settings will be evaluated against cost and privacy requirements.
-- **Phase 4 local:** `InMemorySaver` checkpoints graph state within one Python process solely to prove interrupt/resume. It is erased on restart, is not shared across workers, and is not cross-session long-term memory.
-- **Phase 5 target:** replace it with the official PostgreSQL checkpointer, add restart-safe approvals and transactional idempotency, and persist versioned artifacts/memory exports to GCS.
-- **Local development later:** replaceable test adapters and possibly SQLite for persistence-specific development tests only. Passing local persistence tests will not verify cloud durability.
+Workflow persistence and long-term research memory are deliberately separate:
 
-GCS will not be used as a live SQLite filesystem or custom checkpointer unless a later decision supplies concurrency, atomicity, and restart evidence. Firestore is no longer the default because it would also require custom LangGraph checkpoint integration.
+- **Workflow checkpoints:** application lifespan configuration selects `memory`, `sqlite`, or `postgres`. Memory is process-local. Official async SQLite is local/test-only and has a verified close/reopen pending-interrupt resume test. Official `AsyncPostgresSaver` is the production architecture, configured with `DEEPTRACE_POSTGRES_URI` and an explicit one-time setup flag. No live PostgreSQL instance was tested.
+- **Research memory:** application code depends on `ResearchMemoryRepository`, not cloud APIs. Filesystem memory writes one atomic, bounded schema-v1 JSON file per canonical UUID and proves a new repository/application instance can list and reload prior results. GCS writes the same model to `research-sessions/{uuid}.json` with a create-only generation precondition and Application Default Credentials. Mock tests pass; live GCS is unverified.
+- **Terminal policy:** completed and cancelled sessions are saved. Cancellation is a distinct record with no report, citations, sources, or usage. Failed/incomplete runs are not promoted to history. Pending approval remains checkpoint state rather than a research record.
+
+GCS is not a custom LangGraph checkpointer. PostgreSQL/SQLite are not treated as the user-facing history API. This avoids bespoke object-store concurrency logic and keeps the explicit GCS assignment requirement visible.
 
 ## Safety controls
 

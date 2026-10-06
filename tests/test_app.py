@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from app.memory import FileSystemResearchMemory
 from app.models import PlanStep, ResearchPlan
 from app.search.deterministic import DeterministicSearchProvider
 
@@ -56,7 +58,7 @@ def test_health_endpoint() -> None:
         response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "healthy", "service": "deeptrace", "phase": "4"}
+    assert response.json() == {"status": "healthy", "service": "deeptrace", "phase": "5"}
 
 
 def test_main_page_loads() -> None:
@@ -64,7 +66,7 @@ def test_main_page_loads() -> None:
         response = client.get("/")
 
     assert response.status_code == 200
-    assert "Approve the plan before research begins" in response.text
+    assert "Approve, research, and revisit the evidence" in response.text
     assert "No sources were retrieved" not in response.text
 
 
@@ -136,7 +138,7 @@ def test_approval_route_resumes_and_renders_research_trace() -> None:
     assert search.calls
     assert "Research iterations" in response.text
     assert "Termination: evidence sufficient" in response.text
-    assert "Phase 4 boundary reached" in response.text
+    assert "Phase 5 boundary reached" in response.text
     assert "Approval: approve" in response.text
 
 
@@ -192,3 +194,60 @@ def test_research_route_preserves_input_validation() -> None:
     assert response.status_code == 400
     assert "Enter a research question" in response.text
     assert model.calls == []
+
+
+def test_history_survives_new_application_instance_and_reopens_report(
+    tmp_path: Path,
+) -> None:
+    model = CountingPlanModel()
+    search = CountingSearchProvider()
+    with TestClient(
+        create_app(model, search, FileSystemResearchMemory(tmp_path))
+    ) as first_client:
+        pending = first_client.post(
+            "/research", data={"question": "What persists across sessions?"}
+        )
+        session_id = _workflow_id(pending.text)
+        completed = first_client.post(
+            f"/research/{session_id}/decision", data={"decision": "approve"}
+        )
+        assert completed.status_code == 200
+
+    with TestClient(
+        create_app(model, search, FileSystemResearchMemory(tmp_path))
+    ) as second_client:
+        history = second_client.get("/history")
+        detail = second_client.get(f"/history/{session_id}")
+
+    assert history.status_code == 200
+    assert "What persists across sessions?" in history.text
+    assert session_id in history.text
+    assert detail.status_code == 200
+    assert "Saved report" in detail.text
+    assert "Test planning step" in detail.text
+    assert "Citations" in detail.text
+
+
+def test_cancelled_history_is_labeled_and_missing_session_is_safe(tmp_path: Path) -> None:
+    model = CountingPlanModel()
+    search = CountingSearchProvider()
+    with TestClient(
+        create_app(model, search, FileSystemResearchMemory(tmp_path))
+    ) as client:
+        pending = client.post(
+            "/research", data={"question": "Should this session be cancelled?"}
+        )
+        session_id = _workflow_id(pending.text)
+        cancelled = client.post(
+            f"/research/{session_id}/decision", data={"decision": "reject"}
+        )
+        history = client.get("/history")
+        detail = client.get(f"/history/{session_id}")
+        missing = client.get(f"/history/{'0' * 8}-{'0' * 4}-{'0' * 4}-{'0' * 4}-{'0' * 12}")
+
+    assert cancelled.status_code == 200
+    assert "cancelled" in history.text.lower()
+    assert "Research was cancelled" in detail.text
+    assert "Saved report" not in detail.text
+    assert missing.status_code == 404
+    assert "not found" in missing.text

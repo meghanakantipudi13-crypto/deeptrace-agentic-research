@@ -45,11 +45,12 @@ The explicitly approved Phase 2 scope moved retrieval/verification ahead of the 
 
 ## Phase 5 — Durable cross-session memory
 
+- **Status:** Complete locally; production integrations implemented but unverified.
 - **Objective:** Recover history, reports, and resumable sessions after process restart.
-- **Components:** Replace `InMemorySaver` with PostgreSQL checkpointing, add GCS artifact/memory adapters, session list/detail UI, transactional idempotency, retention/redaction policy.
+- **Components:** Configurable official memory/SQLite/PostgreSQL checkpointers; provider-neutral research repository; atomic filesystem and GCS providers; schema-v1 terminal records; session list/detail UI; bounded records and identifier validation.
 - **Rubric addressed:** Long-term memory and Cloud Run persistence constraint.
-- **Tests:** New-process recovery; optimistic concurrency; stale approval rejection; storage outage behavior.
-- **Completion evidence:** Restart test and PostgreSQL/GCS record/object metadata without secrets.
+- **Tests:** Repository and application recreation; SQLite checkpoint recovery; cancellation, corruption and identifier policy; mocked GCS serialization/list/errors; history UI.
+- **Completion evidence:** 46 tests cover local durable memory and checkpoint restart semantics. Live PostgreSQL/GCS remain deployment work and are not claimed verified.
 
 ## Phase 6 — Layered safety subsystem
 

@@ -20,7 +20,13 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "langgraph-checkpoint-sqlite==3.1.1",
     "pytest==9.1.1",
+]
+production = [
+    "google-cloud-storage==3.16.0",
+    "langgraph-checkpoint-postgres==3.1.2",
+    "psycopg[binary]==3.3.6",
 ]
 
 [tool.setuptools.packages.find]

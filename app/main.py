@@ -1,18 +1,29 @@
-"""FastAPI web application for the DeepTrace Phase 4 approval workflow."""
+"""FastAPI application for durable, human-approved DeepTrace research."""
 
 from __future__ import annotations
 
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 from time import perf_counter
+from typing import AsyncIterator
 
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
+from langgraph.checkpoint.base import BaseCheckpointSaver
 
+from app.checkpointing import open_checkpointer
 from app.logging import configure_logging, log_event
+from app.memory import (
+    MemoryCorruptionError,
+    MemoryNotFoundError,
+    ResearchMemoryRepository,
+    build_memory_repository,
+    record_from_outcome,
+)
 from app.models import ApprovalResumePayload, CancelledResearchResult, PlanStep
 from app.providers import DeterministicPlanModel, PlanModel
 from app.research_workflow import (
@@ -31,6 +42,8 @@ PACKAGE_DIR = Path(__file__).resolve().parent
 def create_app(
     plan_model: PlanModel | None = None,
     search_provider: SearchProvider | None = None,
+    memory_repository: ResearchMemoryRepository | None = None,
+    checkpointer: BaseCheckpointSaver | None = None,
 ) -> FastAPI:
     """Application factory supporting deterministic provider injection in tests."""
 
@@ -40,10 +53,31 @@ def create_app(
 
     selected_plan_model = plan_model or DeterministicPlanModel()
     selected_search_provider = search_provider or build_search_provider()
+    selected_memory = memory_repository or build_memory_repository()
+
+    @asynccontextmanager
+    async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+        if checkpointer is not None:
+            application.state.research_workflow = ResearchWorkflow(
+                selected_plan_model,
+                selected_search_provider,
+                checkpointer=checkpointer,
+            )
+            yield
+            return
+        async with open_checkpointer() as selected_checkpointer:
+            application.state.research_workflow = ResearchWorkflow(
+                selected_plan_model,
+                selected_search_provider,
+                checkpointer=selected_checkpointer,
+            )
+            yield
+
     application = FastAPI(
         title="DeepTrace",
-        description="Phase 4 human-approved iterative research workflow",
-        version="0.4.0",
+        description="Phase 5 durable research memory and human-approved workflow",
+        version="0.5.0",
+        lifespan=lifespan,
     )
     application.mount(
         "/static",
@@ -51,14 +85,11 @@ def create_app(
         name="static",
     )
     application.state.planning_workflow = PlanningWorkflow(selected_plan_model)
-    application.state.research_workflow = ResearchWorkflow(
-        selected_plan_model,
-        selected_search_provider,
-    )
+    application.state.memory_repository = selected_memory
 
     @application.get("/health")
     async def health() -> dict[str, str]:
-        return {"status": "healthy", "service": "deeptrace", "phase": "4"}
+        return {"status": "healthy", "service": "deeptrace", "phase": "5"}
 
     @application.get("/", response_class=HTMLResponse)
     async def home(request: Request) -> HTMLResponse:
@@ -258,6 +289,36 @@ def create_app(
                 workflow_id,
                 approval,
             )
+            memory_error = None
+            record = record_from_outcome(outcome)
+            memory_started = perf_counter()
+            try:
+                log_event(
+                    logger,
+                    "memory_save_started",
+                    session_id=record.session_id,
+                    status=record.status,
+                )
+                await application.state.memory_repository.save(record)
+                log_event(
+                    logger,
+                    "memory_save_completed",
+                    session_id=record.session_id,
+                    status=record.status,
+                    latency_ms=round((perf_counter() - memory_started) * 1000, 3),
+                )
+            except Exception:
+                logger.exception(
+                    "memory_save_failed",
+                    extra={
+                        "event_data": {
+                            "event": "memory_save_failed",
+                            "session_id": record.session_id,
+                            "status": record.status,
+                        }
+                    },
+                )
+                memory_error = "The workflow finished, but its history record could not be saved."
             if isinstance(outcome, CancelledResearchResult):
                 return templates.TemplateResponse(
                     request=request,
@@ -269,7 +330,7 @@ def create_app(
                         "research": None,
                         "cancelled": outcome,
                         "result": outcome,
-                        "error": None,
+                        "error": memory_error,
                     },
                 )
             verification_by_source = {
@@ -299,7 +360,7 @@ def create_app(
                     "cancelled": None,
                     "result": outcome,
                     "verification_by_source": verification_by_source,
-                    "error": None,
+                    "error": memory_error,
                 },
             )
         except (ValidationError, ValueError) as error:
@@ -370,6 +431,99 @@ def create_app(
                     "result": pending,
                     "error": "DeepTrace could not process this approval safely.",
                 },
+                status_code=500,
+            )
+
+    @application.get("/history", response_class=HTMLResponse)
+    async def history(request: Request) -> HTMLResponse:
+        memory_started = perf_counter()
+        log_event(logger, "memory_list", operation="started")
+        try:
+            sessions = await application.state.memory_repository.list_recent(limit=50)
+            log_event(
+                logger,
+                "memory_list",
+                operation="completed",
+                record_count=len(sessions),
+                latency_ms=round((perf_counter() - memory_started) * 1000, 3),
+            )
+            return templates.TemplateResponse(
+                request=request,
+                name="history.html",
+                context={"sessions": sessions, "error": None},
+            )
+        except Exception:
+            logger.exception(
+                "memory_list_failed",
+                extra={"event_data": {"event": "memory_list_failed", "operation": "list"}},
+            )
+            return templates.TemplateResponse(
+                request=request,
+                name="history.html",
+                context={"sessions": [], "error": "Research history is temporarily unavailable."},
+                status_code=500,
+            )
+
+    @application.get("/history/{session_id}", response_class=HTMLResponse)
+    async def history_detail(request: Request, session_id: str) -> HTMLResponse:
+        memory_started = perf_counter()
+        log_event(logger, "memory_load", operation="started", session_id=session_id)
+        try:
+            record = await application.state.memory_repository.get(session_id)
+            log_event(
+                logger,
+                "memory_load",
+                operation="completed",
+                session_id=record.session_id,
+                status=record.status,
+                latency_ms=round((perf_counter() - memory_started) * 1000, 3),
+            )
+            return templates.TemplateResponse(
+                request=request,
+                name="history_detail.html",
+                context={"record": record, "error": None},
+            )
+        except MemoryNotFoundError as error:
+            return templates.TemplateResponse(
+                request=request,
+                name="history_detail.html",
+                context={"record": None, "error": str(error)},
+                status_code=404,
+            )
+        except MemoryCorruptionError:
+            logger.exception(
+                "memory_load_failed",
+                extra={
+                    "event_data": {
+                        "event": "memory_load_failed",
+                        "operation": "get",
+                        "session_id": session_id,
+                        "reason": "invalid_record",
+                    }
+                },
+            )
+            return templates.TemplateResponse(
+                request=request,
+                name="history_detail.html",
+                context={"record": None, "error": "This research record is invalid or corrupted."},
+                status_code=422,
+            )
+        except Exception:
+            logger.exception(
+                "memory_load_failed",
+                extra={
+                    "event_data": {
+                        "event": "memory_load_failed",
+                        "operation": "get",
+                        "session_id": session_id,
+                        "reason": "provider_error",
+                    }
+                },
+            )
+            return templates.TemplateResponse(
+                request=request,
+                name="history_detail.html",
+                context={"record": None, "error": "This research record is temporarily unavailable."},
                 status_code=500,
             )
 

@@ -3,17 +3,18 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>DeepTrace · Human-approved research</title>
+    <title>DeepTrace · Durable research memory</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
   </head>
   <body>
     <main class="shell">
       <header class="hero">
-        <div class="eyebrow">DeepTrace · Phase 4</div>
-        <h1>Approve the plan before research begins.</h1>
+        <nav><a href="/">New research</a><a href="/history">Research history</a></nav>
+        <div class="eyebrow">DeepTrace · Phase 5</div>
+        <h1>Approve, research, and revisit the evidence.</h1>
         <p>
-          DeepTrace pauses at a real checkpoint after planning. Only an explicit human
-          approval can begin bounded retrieval, verification, and self-correction.
+          DeepTrace pauses at a real checkpoint after planning. Approved results are
+          saved as durable, versioned research records that can be reopened later.
         </p>
       </header>
 
@@ -125,6 +126,7 @@
           <strong>Research cancelled</strong>
           <span>The plan was rejected. No search calls or research synthesis were performed.</span>
         </div>
+        <p><a href="/history/{{ cancelled.workflow_id }}">Open saved cancellation record</a></p>
         <p class="trace">Workflow: {{ cancelled.workflow_events|join(" → ") }}</p>
         {% elif not research %}
         <div class="boundary">
@@ -250,9 +252,10 @@
         </ul>
 
         <div class="boundary">
-          <strong>Phase 4 boundary reached</strong>
-          <span>Human approval and critic-driven retrieval are active. Durable persistence, long-term memory, final safety testing, and deployment are not implemented.</span>
+          <strong>Phase 5 boundary reached</strong>
+          <span>Human approval, critic-driven retrieval, and durable research history are active. Final safety testing, quantitative evaluation, and deployment are not implemented.</span>
         </div>
+        <p><a href="/history/{{ research.request_id }}">Open saved research record</a></p>
         <p class="trace">Approval: {{ research.approval_decision }} · Plan modified: {{ research.plan_modified }}</p>
         <div class="metrics">
           <span>{{ research.usage.search_calls }} search calls</span>

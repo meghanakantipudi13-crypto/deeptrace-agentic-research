@@ -37,6 +37,7 @@ node_modules/
 Thumbs.db
 
 # Runtime and local persistence
+.deeptrace-memory/
 *.db
 *.sqlite
 *.sqlite3
