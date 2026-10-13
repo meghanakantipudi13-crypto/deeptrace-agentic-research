@@ -104,3 +104,7 @@ The production cost model remains a method rather than an estimate: record model
 ## Known limitations
 
 The dataset is capability-matched but synthetic and only 27 cases. It establishes deterministic graph-policy behavior, not real-world answer quality. Fixtures contain deliberately constructed supportive or irrelevant snippets; there is no human relevance judgment, full-document verification, conflict benchmark, live Tavily behavior, model token usage, production persistence load, multi-worker concurrency, authentication test, deployment latency, or infrastructure cost. The three safety attacks are intentionally small and local and must not be generalized to arbitrary attacks. The deterministic critic uses plan coverage and lexical support heuristics; conflict detection remains limited because current snippets do not carry normalized claim stances. Future live/deployed methodology changes must be versioned and explained rather than merged into this local result.
+
+## Phase 8 production-evaluation boundary
+
+No live-evaluation result has been added. Phase 8 introduced fields for provider model/version, input/output/total tokens, model-call count, model latency, search credits/calls, retrieval passes, and total latency, but the absence of Google/Tavily credentials and cloud resources means there are no actual production measurements. `eval/results/live_smoke_usage.json` was intentionally not fabricated. The 27-case deterministic artifacts above remain the only measured results and must not be presented as live-provider performance.

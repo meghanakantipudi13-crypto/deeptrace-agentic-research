@@ -2,7 +2,7 @@
 
 | Risk | Impact | Early mitigation | Evidence needed |
 |---|---|---|---|
-| Ambiguous Hermes/OpenClaw deployment boundary | A functional app may still be noncompliant | Ask the five documented instructor questions before locking deployment; keep core portable | Written clarification plus deployed topology review |
+| Hermes plugin grading boundary | A technically supported plugin may still differ from the instructor's expected coupling | Use Hermes' official authenticated dashboard-extension path and ask the single Phase 8 confirmation question | Written confirmation plus deployed topology review |
 | Cloud Run Instance beta availability/quota | Deployment could fail late | Run a Phase 0/1 account and region feasibility check as soon as tools/credentials are available | Successful minimal instance spike and cost estimate |
 | Non-durable or corrupt state | Pending approvals or history disappear; malformed records crash history | Phase 5 separates official checkpoint savers from schema-v1 research memory; local SQLite/filesystem restart tests pass; GCS/PostgreSQL remain unverified | Live GCS and PostgreSQL restart tests before production claim |
 | Decorative HITL | Retrieval proceeds without genuine approval | Implemented LangGraph interrupt plus code-enforced approval router | Scenario A checkpoint inspection and zero-search assertion; approve/modify/reject tests |
@@ -17,6 +17,8 @@
 | Process-local rate limiting | A restart or second worker resets limits, allowing distributed abuse | Phase 6 bounds POST requests per client/route group in one process and returns a visible 429 | Authenticated identity-based shared limiter and multi-worker tests before deployment |
 | Citation mismatch | Report appears sourced but claims are unsupported | Claim-evidence mapping, quote/span metadata where lawful, final validator | Citation correctness sample with human audit |
 | Provider/API outage or drift | Demo failure and irreproducible evaluation | Adapters, timeouts/retries with caps, pinned versions where possible, cached licensed fixtures for tests | Failure-injection tests and provider metadata |
+| Production silently uses fixtures | A demo could be mistaken for live research | Phase 8 fail-closed validation requires Vertex, Tavily, GCS, and PostgreSQL selectors and credentials/config | Production startup negative tests and visible LIVE provider banner |
+| Cloud tooling/authentication absent | Live integration cannot begin or produce deployment evidence | Install Google Cloud CLI/container tooling, authenticate explicitly, select the actual project, and approve costs before provisioning | Tool versions, authenticated project output, and approved resource plan |
 | Live Tavily behavior unverified | Mock contract may not expose account, relevance, quota, or latency problems | Run one bounded credentialed smoke test without recording the key before relying on live search | Dated request metadata, provider response, latency, and usage credits |
 | Deterministic verifier is shallow | Lexical overlap may accept weak context or reject paraphrases | Treat scores as preliminary signals; later add calibrated model/human rubric and measure errors | Labeled relevance set and false-positive/negative analysis |
 | Search snippets omit source context | Preliminary claims may lack full-document support | Label output preliminary; add restricted source fetching/extraction and span-level evidence later | Citation audit against fetched source text |

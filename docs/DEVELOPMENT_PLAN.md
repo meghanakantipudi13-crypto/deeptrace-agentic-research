@@ -70,13 +70,14 @@ The explicitly approved Phase 2 scope moved retrieval/verification ahead of the 
 - **Tests:** Dataset/schema rejection, scorer mismatches, zero denominators, serialization/overwrite policy, failure visibility, and derived safety aggregation.
 - **Completion evidence:** 63-test suite plus complete `deeptrace-eval-v1` run: 27/27 expected outcomes, 37/41 evidence coverage, 39/39 valid citations, and raw/Markdown artifacts. Results are explicitly local/deterministic.
 
-## Phase 8 — Deployed adversarial evaluation
+## Phase 8 — Production integration and verification
 
-- **Objective:** Execute and preserve at least three required attacks plus benign controls.
-- **Components:** Exact payload fixtures, trace capture, expected/actual records, limitation review.
-- **Rubric addressed:** Mandatory prompt-injection testing and safety evidence.
-- **Tests:** PI-001, PI-002, PI-003 against deployed build; repeat runs where methodology requires.
-- **Completion evidence:** Raw traces/results with date, build, pass/fail, guardrail, and limitations.
+- **Status:** Partially complete; user action required.
+- **Objective:** Resolve the Cloud Run Instance/Hermes topology and replace simulated production fallbacks with explicit provider configuration.
+- **Components:** Structured Vertex/Gemini planner, token/model/latency metadata, fail-closed production validation, LIVE-mode UI, official topology/IAM/cost documentation.
+- **Boundary:** No cloud resources were provisioned and no provider was live-called because Google tooling/authentication/project configuration and Tavily/GCS/PostgreSQL secrets are absent. Deterministic artifacts remain separate.
+- **Local evidence:** Python 3.11.4, dependency checks, production imports, compilation, and all 67 deterministic/mock tests pass.
+- **Next evidence:** authenticate/select a project, approve costs, then perform controlled Vertex, Tavily, GCS, PostgreSQL, and Hermes smoke tests.
 
 ## Phase 9 — Assignment-compliant deployment and monitoring
 

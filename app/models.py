@@ -56,6 +56,11 @@ class ResearchPlan(BaseModel):
     steps: list[PlanStep] = Field(min_length=1, max_length=8)
     provider_label: str = Field(min_length=1, max_length=100)
     is_simulated: bool
+    model_name: str | None = Field(default=None, max_length=100)
+    input_tokens: int | None = Field(default=None, ge=0)
+    output_tokens: int | None = Field(default=None, ge=0)
+    total_tokens: int | None = Field(default=None, ge=0)
+    model_latency_ms: float | None = Field(default=None, ge=0)
     limitations: list[str] = Field(default_factory=list, max_length=5)
 
 
@@ -284,6 +289,11 @@ class UsageMetadata(BaseModel):
     duplicates_removed: int = Field(ge=0)
     retrieval_passes: int = Field(ge=0)
     external_model_calls: int = Field(ge=0)
+    model_name: str | None = Field(default=None, max_length=100)
+    model_input_tokens: int | None = Field(default=None, ge=0)
+    model_output_tokens: int | None = Field(default=None, ge=0)
+    model_total_tokens: int | None = Field(default=None, ge=0)
+    model_latency_ms: float | None = Field(default=None, ge=0)
     critic_invocations: int = Field(default=0, ge=0)
     correction_iterations: int = Field(default=0, ge=0)
     provider_credits_used: float | None = Field(default=None, ge=0)

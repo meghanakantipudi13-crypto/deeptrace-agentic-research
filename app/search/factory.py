@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 
+from app.config import is_production_environment
 from app.search.base import SearchProvider
 from app.search.deterministic import DeterministicSearchProvider
 from app.search.tavily import TavilySearchProvider
@@ -24,6 +25,10 @@ def build_search_provider() -> SearchProvider:
                 configured_timeout = 20.0
             timeout_seconds = max(1.0, min(configured_timeout, 180.0))
             return TavilySearchProvider(api_key, timeout_seconds=timeout_seconds)
+        if is_production_environment():
+            raise RuntimeError(
+                "Production search requires TAVILY_API_KEY; deterministic fallback is disabled."
+            )
         return DeterministicSearchProvider(reason="TAVILY_API_KEY is not configured")
     if requested in {"deterministic", "simulated", "fixture"}:
         return DeterministicSearchProvider()

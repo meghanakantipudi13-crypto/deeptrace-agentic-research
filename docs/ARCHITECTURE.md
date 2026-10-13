@@ -112,6 +112,8 @@ Implemented events cover request/workflow stages, approval transitions, critic r
 
 Phase 7 adds an offline evaluation package, not a runtime application component. A versioned JSON dataset drives deterministic plan/search adapters through the same `ResearchWorkflow`; scorers compare public typed outputs and state facts, then serialize raw case results and aggregate metrics. Safety cases read the canonical Phase 6 artifact. Evaluation code does not alter graph routes, providers, UI behavior, or persistence. Local fixture timings and outcomes are kept distinct from future live-provider and deployed evaluation.
 
-## Deployment shape pending clarification
+## Phase 8 production boundary
 
-The core is packaged as one container. The assignment-specific adapter may either run DeepTrace as a Hermes skill/plugin/workspace process or place a Hermes gateway and DeepTrace process in the same Cloud Run Instance if the platform and instructor permit it. Ordinary request-driven Cloud Run remains a portability fallback, not the claimed submission topology.
+Development remains deterministic by default. Production selects a structured Vertex/Gemini planner, Tavily retrieval, GCS research memory, and the official PostgreSQL LangGraph saver. `DEEPTRACE_ENV=production` validates this entire set before the app is created and disables simulated fallback. Model identity, input/output/total tokens, call count, and latency flow from the planning response into typed usage metadata without logging prompts.
+
+The target host is the distinct preview Cloud Run Instance resource. Hermes owns ingress and the authenticated dashboard; DeepTrace is exposed through Hermes' documented dashboard plugin/backend router mechanism. GCS persists terminal research records, while PostgreSQL persists mutable graph checkpoints. Cloud Logging/Monitoring consume structured events under the `cloud_run_instance` resource. This packaging and all cloud calls remain unverified until tooling, credentials, secrets, and a project are available.

@@ -2,7 +2,7 @@
 
 DeepTrace is a developing production-ready agentic research and source-verification platform for CSCI 599 Assignment 4. A user will eventually submit a research question, review a generated plan, and—only after approving or modifying that plan—allow the system to iteratively retrieve, assess, verify, and synthesize evidence with traceable citations.
 
-This repository has completed **Phase 7: deterministic/local quantitative evaluation**. A versioned 27-case custom benchmark now measures planning/retrieval termination, self-correction, evidence coverage, citation integrity, HITL policy, and safety behavior through a reproducible CLI. The approval, iterative research, durable-memory, and layered-safety features remain intact. Live-provider research-quality evaluation, deployed adversarial testing, deployment, and a production model remain unfinished.
+This repository has completed **Phase 7** and reached **Phase 8 production-integration readiness**. The deterministic 27-case benchmark remains unchanged. Production mode now fails closed unless Vertex AI, Tavily, GCS, and PostgreSQL are explicitly configured, and a structured Vertex/Gemini planning adapter captures model/token/latency metadata. No provider or cloud integration has been live-verified because credentials, project configuration, and required tooling are absent.
 
 ## Problem
 
@@ -37,8 +37,8 @@ All four are verified at the deterministic/local level. Long-term memory is spec
 - **API and UI host:** FastAPI with Jinja2. HTMX/server-sent events remain optional future additions when interactive approval/progress requires them.
 - **Orchestration:** LangGraph with typed state and explicit `plan → request approval → interrupt` stages before query generation. `Command(resume=...)` continues the same checkpointed thread into the Phase 3 retrieve/verify/critic/correct graph or routes rejection directly to cancellation.
 - **Workflow checkpoints:** `memory` remains the zero-configuration default; `sqlite` is an official local/test backend and has a tested pending-interrupt restart/resume path; `postgres` selects official `AsyncPostgresSaver` for production. PostgreSQL setup and live multi-worker behavior remain unverified without infrastructure.
-- **Current model provider:** a deterministic, credential-free development planner whose UI output is explicitly labeled simulated
-- **Default production model candidate:** Gemini through Vertex AI, behind the implemented `PlanModel` abstraction
+- **Current development model provider:** a deterministic, credential-free planner whose UI output is explicitly labeled simulated
+- **Production model provider:** structured Gemini planning through Vertex AI and `google-genai`, behind `PlanModel`; mocked structured-output and telemetry tests pass, but live verification remains pending
 - **Search provider:** a `SearchProvider` interface with deterministic `.test` fixtures by default and a Tavily HTTP adapter when `TAVILY_API_KEY` is configured. The live adapter is not yet smoke-tested.
 - **Evidence processing:** provider snippets are normalized to provenance-rich `Source` objects, canonical-URL deduplicated across iterations, capped at 12 retained sources, and treated as untrusted data. No arbitrary source-page fetching occurs yet.
 - **Verification:** deterministic lexical relevance, evidence-length/support, plan-item mapping, instruction-like-content quarantine, and limited domain-category signals. These heuristics do not establish truth or comprehensive source quality.
@@ -94,7 +94,7 @@ Copy `.env.example` to a local `.env` only after implementation begins. Never co
 - `DEEPTRACE_CHECKPOINT_BACKEND=memory|sqlite|postgres` chooses graph state storage. SQLite is local/test-only. PostgreSQL requires `DEEPTRACE_POSTGRES_URI`; run `DEEPTRACE_POSTGRES_SETUP=true` only for controlled initial schema setup.
 - `DEEPTRACE_RATE_LIMIT_PER_MINUTE` controls the bounded per-process POST allowance (default 30, maximum 300).
 
-If Tavily is requested without a key, DeepTrace safely falls back to visibly simulated fixtures. Do not paste keys into source files or chat.
+In development, Tavily requested without a key falls back to visibly simulated fixtures. In production, incomplete provider or persistence configuration raises an error and never silently falls back. Do not paste keys into source files or chat.
 
 ## Running locally
 
@@ -112,11 +112,11 @@ The default planner and search provider are simulated and perform no external ca
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-The suite includes 63 tests. It preserves all Phase 1–6 coverage and tests evaluation dataset validation, metric calculations, zero denominators, expected/actual scoring, failure visibility, serialization/no-silent-overwrite behavior, and derived safety metrics. Reproduce the local adversarial artifact with `python -m adversarial_tests.run_local`.
+The suite includes 67 tests. It preserves all prior workflow/evaluation coverage and adds production fail-closed configuration plus mocked structured Vertex planning/usage checks. Reproduce the local adversarial artifact with `python -m adversarial_tests.run_local`.
 
 ## Deployment
 
-Not deployed. There is no live URL. Ordinary Cloud Run is not being treated as equivalent to the rubric's “Cloud Run Instances with OpenClaw or Hermes Agent and monitoring.”
+Not deployed; there is no live URL. The selected topology is the distinct preview Cloud Run Instance resource with Hermes as the authenticated ingress/dashboard and DeepTrace exposed through Hermes' documented dashboard-plugin API. Ordinary Cloud Run is not treated as equivalent. See [docs/DEPLOYMENT_COMPLIANCE.md](docs/DEPLOYMENT_COMPLIANCE.md) for tooling, cost, IAM, user actions, and the remaining instructor-confirmation question.
 
 ## Limitations
 

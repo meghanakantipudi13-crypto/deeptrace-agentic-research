@@ -17,6 +17,7 @@ from pydantic import ValidationError
 from langgraph.checkpoint.base import BaseCheckpointSaver
 
 from app.checkpointing import open_checkpointer
+from app.config import validate_production_environment
 from app.logging import configure_logging, log_event
 from app.memory import (
     MemoryCorruptionError,
@@ -26,7 +27,7 @@ from app.memory import (
     record_from_outcome,
 )
 from app.models import ApprovalResumePayload, CancelledResearchResult, PlanStep
-from app.providers import DeterministicPlanModel, PlanModel
+from app.providers import PlanModel, build_plan_model
 from app.research_workflow import (
     ResearchWorkflow,
     WorkflowNotAwaitingApprovalError,
@@ -57,10 +58,11 @@ def create_app(
     """Application factory supporting deterministic provider injection in tests."""
 
     configure_logging()
+    validate_production_environment()
     logger = logging.getLogger("deeptrace.web")
     templates = Jinja2Templates(directory=str(PACKAGE_DIR / "templates"))
 
-    selected_plan_model = plan_model or DeterministicPlanModel()
+    selected_plan_model = plan_model or build_plan_model()
     selected_search_provider = search_provider or build_search_provider()
     selected_memory = memory_repository or build_memory_repository()
     try:
@@ -95,8 +97,8 @@ def create_app(
 
     application = FastAPI(
         title="DeepTrace",
-        description="Phase 6 layered safety for durable human-approved research",
-        version="0.6.0",
+        description="Production-ready configuration for durable human-approved research",
+        version="0.8.0",
         lifespan=lifespan,
     )
     application.mount(
@@ -158,7 +160,7 @@ def create_app(
 
     @application.get("/health")
     async def health() -> dict[str, str]:
-        return {"status": "healthy", "service": "deeptrace", "phase": "6"}
+        return {"status": "healthy", "service": "deeptrace", "phase": "8"}
 
     @application.get("/", response_class=HTMLResponse)
     async def home(request: Request) -> HTMLResponse:

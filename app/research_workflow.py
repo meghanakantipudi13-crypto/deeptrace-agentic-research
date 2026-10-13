@@ -169,7 +169,14 @@ class ResearchWorkflow:
         return {
             "research_plan": plan.model_dump(mode="json"),
             "current_stage": "create_plan",
-            "usage": {"external_model_calls": 0 if plan.is_simulated else 1},
+            "usage": {
+                "external_model_calls": 0 if plan.is_simulated else 1,
+                "model_name": plan.model_name,
+                "model_input_tokens": plan.input_tokens,
+                "model_output_tokens": plan.output_tokens,
+                "model_total_tokens": plan.total_tokens,
+                "model_latency_ms": plan.model_latency_ms,
+            },
             "node_latencies_ms": self._completed(
                 state,
                 "create_plan",
@@ -843,6 +850,11 @@ class ResearchWorkflow:
                 duplicates_removed=usage.get("duplicates_removed", 0),
                 retrieval_passes=usage.get("retrieval_passes", 0),
                 external_model_calls=usage.get("external_model_calls", 0),
+                model_name=usage.get("model_name"),
+                model_input_tokens=usage.get("model_input_tokens"),
+                model_output_tokens=usage.get("model_output_tokens"),
+                model_total_tokens=usage.get("model_total_tokens"),
+                model_latency_ms=usage.get("model_latency_ms"),
                 critic_invocations=usage.get("critic_invocations", 0),
                 correction_iterations=usage.get("correction_iterations", 0),
                 provider_credits_used=usage.get("provider_credits_used"),

@@ -79,4 +79,12 @@ The final submission requires a factual 200–300 word narrative per team member
 
 ## Final per-member narrative
 
+### 2026-10-12–13 — Phase 8 production-integration preparation
+
+- Reconfirmed `main`, clean synchronization at `355a5cc`, 63 baseline tests, and a successful 27-case deterministic evaluation before changes.
+- Reviewed current official Cloud Run Instance, Hermes deployment/plugin/dashboard-authentication, GCS/Secret Manager, monitoring/logging, and Google Gen AI documentation. Selected Hermes as ingress with DeepTrace exposed through its authenticated dashboard-plugin API; ordinary Cloud Run remains non-equivalent.
+- Added a structured Vertex/Gemini planning adapter and production usage fields for model identity, input/output/total tokens, calls, and latency. Added fail-closed production validation requiring Vertex, Tavily, GCS, and PostgreSQL, while leaving deterministic development defaults intact.
+- Found no `gcloud`, Docker, Hermes/OpenClaw tools, GCP credentials/project configuration, Tavily key, GCS bucket, or PostgreSQL URI. No billable resource or live provider call was attempted. An initial sandboxed launch made the registered Python interpreter appear unavailable; after the existing environment was upgraded and execution was independently retried with scoped runtime access, Python 3.11.4, dependency consistency, production imports, compilation, and all 67 tests passed.
+- Documented the cost gate, IAM/API expectations, preview/regional/restart limits, required user actions, and one targeted instructor-confirmation question. Phase 8 remains partial and Phase 9 was not started.
+
 Not yet written. Replace this section near submission time with 200–300 factual words per team member based on the notes above and subsequent dated entries.

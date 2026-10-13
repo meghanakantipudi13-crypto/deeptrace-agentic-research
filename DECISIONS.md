@@ -136,3 +136,13 @@ Statuses distinguish accepted architecture from later implementation. An accepte
 - **Rationale:** The harness is reproducible, auditable, inexpensive, and matched to capabilities already implemented without adding product behavior.
 - **Evidence:** `deeptrace-eval-v1` executed all 27 cases: 27 passed expected behavior, 23/23 termination matches, 5/5 correction successes, 37/41 supported plan items, 39/39 valid citations, 0 unsupported citations, 5/5 HITL cases, 3/3 locally defended attacks, 4/4 bounded insufficiency cases, and 0 unexpected errors.
 - **Limitations:** Synthetic snippets cannot establish factual correctness, semantic relevance, live-provider behavior, production latency/cost, deployment reliability, or broad adversarial robustness. A later live/deployed evaluation must remain separate and versioned.
+
+## ADR-014 — Use a Cloud Run Instance with an authenticated Hermes dashboard plugin
+
+- **Status:** Accepted for Phase 8 preparation; live verification and instructor confirmation pending
+- **Context:** Current Google documentation distinguishes long-lived Cloud Run Instances from services and explicitly lists Hermes as an instance workload. Hermes documents dashboard plugins with frontend tabs and authenticated FastAPI backend routers.
+- **Decision:** Target a preview Cloud Run Instance with Hermes as the ingress/dashboard and expose DeepTrace through a Hermes dashboard plugin. Use Vertex AI through `google-genai` and ADC, Tavily through Secret Manager, GCS for terminal research memory, and the official PostgreSQL saver for LangGraph checkpoints. Never substitute an ordinary Cloud Run service while claiming rubric compliance.
+- **Production policy:** `DEEPTRACE_ENV=production` fails before application startup unless provider selectors and required non-secret configuration/secret presence identify Vertex, Tavily, GCS, and PostgreSQL. Development remains deterministic. Production provider metadata must be visible and captured without prompts or credentials.
+- **Rationale:** This follows both products' supported extension models and produces one authenticated Hermes grader URL while preserving the tested DeepTrace core.
+- **Cost/safety:** Cloud Run Instance compute is billed for its lifecycle; Cloud SQL has recurring cost. No API/resource may be enabled or created before project selection and explicit user approval. Secret versions must be injected, not committed.
+- **Limitations:** No Hermes runtime, container build, GCP project, credentials, live provider, bucket, database, URL, monitor, or alert has been tested. The instructor should confirm that a dashboard plugin is the expected integration boundary.

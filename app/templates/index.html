@@ -81,6 +81,16 @@
             ({{ research.search_provider_label }}). Simulated sources are not genuine web research.
           </span>
         </div>
+        {% elif research %}
+        <div class="notice notice-live" role="status">
+          <strong>Provider Mode: LIVE</strong>
+          <span>Planner: {{ plan.provider_label }} · Retrieval: {{ research.search_provider_label }}.</span>
+        </div>
+        {% elif pending and pending.approval_payload.provider_mode == "real" %}
+        <div class="notice notice-live" role="status">
+          <strong>Provider Mode: LIVE</strong>
+          <span>Planner: {{ plan.provider_label }} · Live retrieval will begin only after approval.</span>
+        </div>
         {% elif pending and plan.is_simulated %}
         <div class="notice" role="status">
           <strong>SIMULATED DEVELOPMENT MODE</strong>
