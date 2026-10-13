@@ -5,6 +5,7 @@ from __future__ import annotations
 import unicodedata
 
 from app.models import MAX_QUESTION_LENGTH
+from app.safety import enforce_user_text
 
 
 class QuestionValidationError(ValueError):
@@ -32,4 +33,5 @@ def normalize_question(value: str) -> str:
         raise QuestionValidationError(
             f"Keep the research question to {MAX_QUESTION_LENGTH} characters or fewer."
         )
+    enforce_user_text(normalized, stage="user_input")
     return normalized

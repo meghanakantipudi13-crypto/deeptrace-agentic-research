@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal, TypedDict
+from typing import Annotated, Any, Literal, TypedDict
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 MAX_QUESTION_LENGTH = 500
@@ -15,15 +15,37 @@ MAX_RESULTS_PER_QUERY = 3
 MAX_TOTAL_SOURCES = 12
 MAX_SOURCE_CONTENT_LENGTH = 1_500
 MAX_RESEARCH_ITERATIONS = 2
+EvidenceRequirement = Annotated[str, Field(min_length=1, max_length=300)]
+
+
+class SafetyEvent(BaseModel):
+    """Non-sensitive record of a deterministic safety-policy decision."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    event_type: Literal[
+        "prompt_injection_detected",
+        "untrusted_content_quarantined",
+        "rate_limit_exceeded",
+    ]
+    stage: Literal["user_input", "human_plan", "retrieval", "request"]
+    timestamp: str
+    workflow_id: str | None = None
+    subject_id: str | None = Field(default=None, max_length=100)
+    action: Literal["blocked", "quarantined", "allowed_with_annotation"]
+    rule_ids: list[str] = Field(default_factory=list, max_length=10)
+    reason: str = Field(min_length=1, max_length=300)
 
 
 class PlanStep(BaseModel):
     """One planned research activity; it is not evidence or a result."""
 
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     order: int = Field(ge=1)
     title: str = Field(min_length=1, max_length=120)
     purpose: str = Field(min_length=1, max_length=500)
-    evidence_needed: list[str] = Field(min_length=1, max_length=5)
+    evidence_needed: list[EvidenceRequirement] = Field(min_length=1, max_length=5)
 
 
 class ResearchPlan(BaseModel):
@@ -72,6 +94,7 @@ class PendingResearchResult(BaseModel):
     approval_payload: ApprovalInterruptPayload
     interrupt_id: str
     workflow_events: list[str]
+    safety_events: list[SafetyEvent] = Field(default_factory=list)
 
 
 class CancelledResearchResult(BaseModel):
@@ -85,6 +108,7 @@ class CancelledResearchResult(BaseModel):
     search_calls: int = Field(default=0, ge=0)
     workflow_events: list[str]
     created_at: datetime
+    safety_events: list[SafetyEvent] = Field(default_factory=list)
 
 
 class ResearchState(TypedDict, total=False):
@@ -115,6 +139,7 @@ class ResearchState(TypedDict, total=False):
     usage: dict[str, Any]
     node_latencies_ms: dict[str, float]
     workflow_events: list[str]
+    safety_events: list[dict[str, Any]]
 
 
 class PlanningResult(BaseModel):
@@ -295,3 +320,4 @@ class ResearchResult(BaseModel):
     search_provider_label: str
     search_is_simulated: bool
     elapsed_ms: float = Field(ge=0)
+    safety_events: list[SafetyEvent] = Field(default_factory=list)

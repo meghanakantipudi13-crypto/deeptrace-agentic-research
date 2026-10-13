@@ -6,7 +6,7 @@ The architecture must make agentic behavior visible, ensure approval and safety 
 
 ## Components
 
-1. **FastAPI web application** — serves HTML, APIs, and a server-sent event stream. It authenticates/identifies a demo user, validates requests, and exposes plan approval, modification, and cancellation actions.
+1. **FastAPI web application** — serves HTML, validates requests, rate-limits mutating routes within one process, and exposes plan approval, modification, cancellation, and history actions. Authentication/authorization remains deployment work.
 2. **Research workflow** — a LangGraph state graph with typed state and explicit transitions: validate → plan → persist/pause → approval router → retrieve → evaluate → verify → critic → revise-or-synthesize → citation/output validation → persist.
 3. **Model adapter** — structured-output interface for planning, query revision, evidence judgments, criticism, and synthesis. Model output never directly selects privileged tools or marks approval.
 4. **Search/fetch adapter** — issues bounded queries, validates URLs/redirects, retrieves limited content, normalizes metadata, and labels all content untrusted.
@@ -40,7 +40,7 @@ ResearchSession
 
 ## Enforced workflow
 
-### Current Phase 5 graph
+### Current Phase 6 graph
 
 ```text
 START -> start -> plan -> request approval -> approval_checkpoint interrupt
@@ -92,21 +92,21 @@ GCS is not a custom LangGraph checkpointer. PostgreSQL/SQLite are not treated as
 
 ## Safety controls
 
-- Request schema, length, Unicode normalization, and prohibited-action checks.
-- Direct injection signals produce a guardrail event and bounded safe handling.
-- HTTP(S)-only URL parsing, private/reserved address blocking, DNS rebinding/redirect checks, MIME/size/time limits, and disabled active content.
-- Provenance wrappers and content hashes for all retrieved evidence.
-- Strict structured model outputs and allowlisted enum transitions.
-- Approval, iteration, call, source, content, token, timeout, and cost ceilings enforced outside the model.
-- Claim-to-citation mapping plus final URL/source existence checks.
-- Secret and sensitive-content redaction before logging.
-- Fail closed on ambiguous approval, persistence conflicts, schema failure, or citation validation failure.
+- NFKC normalization, malformed-control removal, typed schemas, string/item limits, and named direct-injection rules.
+- Multi-signal imperative control bypass is blocked; defensively framed safety research is allowed with annotation rather than keyword censorship.
+- Modified plans are bounded and inspected before the interrupted graph receives `Command(resume=...)`.
+- Search results accept only canonical HTTP(S) URLs, retain provenance, truncate content, identify instruction-like text, and quarantine it from synthesis. Deep fetching, redirect/DNS/SSRF defenses are not yet applicable because DeepTrace consumes provider snippets only.
+- Approval, graph edges, critic decisions, iteration counters, query/result/source limits, and provider timeout are application-owned. Retrieved/model text cannot set them.
+- Accepted-evidence-only synthesis and citation closure reject unknown IDs or metadata that differs from retained sources. Incomplete evidence remains explicitly uncertain.
+- UUID/path/object-name validation, schema v1, a 1 MB record ceiling, and omission of retrieved bodies prevent persisted content from gaining authority.
+- Per-process/IP POST limiting supplies a local abuse bound; a shared authenticated deployment limit remains required.
+- `SafetyEvent` and JSON logs contain identifiers, stage, action, rules, and reasons—not inspected payloads, prompts, credentials, headers, or chain-of-thought.
+
+The full applied threat model and limitations are in `docs/THREAT_MODEL.md`.
 
 ## Observability events
 
-At minimum: `request_validated`, `plan_created`, `approval_waiting`, `plan_modified`, `plan_approved`, `plan_rejected`, `query_issued`, `source_retrieved`, `source_blocked`, `evidence_scored`, `claim_verified`, `critic_gap`, `query_revised`, `budget_exhausted`, `report_validated`, `guardrail_triggered`, `session_persisted`, and `workflow_failed`.
-
-Events include IDs, timestamps, duration, attempt counts, decision codes, provider usage, and content hashes—not raw secrets or unnecessary full prompts.
+Implemented events cover request/workflow stages, approval transitions, critic routes, persistence operations, checkpoint selection, provider failures, and `safety_intervention`. Events include IDs, timestamps, duration, counts, decision codes, provider facts, and named safety rules—not raw secrets, evidence bodies, or unnecessary prompts. Cloud export/dashboard/alerting remain future deployment work.
 
 ## Deployment shape pending clarification
 

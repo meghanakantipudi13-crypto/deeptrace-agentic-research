@@ -12,6 +12,7 @@ from app.models import (
     Citation,
     PreliminaryResearchResult,
     ResearchPlan,
+    SafetyEvent,
     UsageMetadata,
 )
 
@@ -28,6 +29,7 @@ class StoredSourceMetadata(BaseModel):
     provider: str = Field(min_length=1, max_length=100)
     retrieved_at: str
     is_simulated: bool
+    instruction_like: bool = False
 
 
 class ResearchMemoryRecord(BaseModel):
@@ -51,6 +53,7 @@ class ResearchMemoryRecord(BaseModel):
     citations: list[Citation] = Field(default_factory=list)
     sources: list[StoredSourceMetadata] = Field(default_factory=list, max_length=12)
     usage: UsageMetadata | None = None
+    safety_events: list[SafetyEvent] = Field(default_factory=list, max_length=50)
 
     @field_validator("session_id")
     @classmethod

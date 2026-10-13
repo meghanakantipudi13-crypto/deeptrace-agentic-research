@@ -28,6 +28,7 @@ from app.models import (
     ResearchPlan,
     ResearchResult,
     ResearchState,
+    SafetyEvent,
     SearchQuery,
     Source,
     UsageMetadata,
@@ -42,6 +43,12 @@ from app.research import (
     verify_sources,
 )
 from app.search.base import SearchProvider
+from app.safety import (
+    SafetyPolicyViolation,
+    enforce_user_text,
+    inspect_retrieved_content,
+    safety_event,
+)
 
 
 class WorkflowNotFoundError(LookupError):
@@ -352,6 +359,29 @@ class ResearchWorkflow:
             retrieval_iteration=iteration,
         )
         sources = [*existing, *new_sources]
+        safety_events = [*state.get("safety_events", [])]
+        for source in new_sources:
+            if not source.instruction_like:
+                continue
+            inspection = inspect_retrieved_content(source.content)
+            event = safety_event(
+                event_type="untrusted_content_quarantined",
+                stage="retrieval",
+                action="quarantined",
+                inspection=inspection,
+                workflow_id=state["request_id"],
+                subject_id=source.source_id,
+            )
+            safety_events.append(event.model_dump(mode="json"))
+            log_event(
+                self._logger,
+                "safety_intervention",
+                request_id=state["request_id"],
+                stage="retrieval",
+                action="quarantined",
+                subject_id=source.source_id,
+                rule_ids=event.rule_ids,
+            )
         prior_usage = state.get("usage", {})
         previous_credits = prior_usage.get("provider_credits_used")
         total_credits = None
@@ -373,6 +403,7 @@ class ResearchWorkflow:
         }
         return {
             "sources": [source.model_dump(mode="json") for source in sources],
+            "safety_events": safety_events,
             "new_source_ids": [source.source_id for source in new_sources],
             "usage": usage,
             "termination_reason": (
@@ -607,6 +638,7 @@ class ResearchWorkflow:
     async def start(self, question: str) -> PendingResearchResult:
         """Create a thread and return only after LangGraph has genuinely interrupted."""
 
+        input_event = enforce_user_text(question, stage="user_input")
         workflow_id = str(uuid4())
         config = self._config(workflow_id)
         log_event(
@@ -614,6 +646,15 @@ class ResearchWorkflow:
             "workflow_created",
             request_id=workflow_id,
         )
+        if input_event:
+            log_event(
+                self._logger,
+                "safety_intervention",
+                request_id=workflow_id,
+                stage="user_input",
+                action=input_event.action,
+                rule_ids=input_event.rule_ids,
+            )
         await self.graph.ainvoke(
             {
                 "request_id": workflow_id,
@@ -632,6 +673,15 @@ class ResearchWorkflow:
                 "usage": {},
                 "node_latencies_ms": {},
                 "workflow_events": ["workflow_created"],
+                "safety_events": (
+                    [
+                        input_event.model_copy(
+                            update={"workflow_id": workflow_id}
+                        ).model_dump(mode="json")
+                    ]
+                    if input_event
+                    else []
+                ),
             },
             config,
         )
@@ -679,6 +729,10 @@ class ResearchWorkflow:
             approval_payload=approval_payload,
             interrupt_id=interrupts[0].id,
             workflow_events=state["workflow_events"],
+            safety_events=[
+                SafetyEvent.model_validate(item)
+                for item in state.get("safety_events", [])
+            ],
         )
 
     async def resume(
@@ -693,6 +747,25 @@ class ResearchWorkflow:
         except (ValueError, TypeError) as error:
             raise WorkflowNotFoundError("Unknown workflow ID.") from error
         config = self._config(workflow_id)
+        if approval.decision == "modify":
+            plan_text = " ".join(
+                part
+                for step in approval.modified_steps or []
+                for part in [step.title, step.purpose, *step.evidence_needed]
+            )
+            try:
+                enforce_user_text(plan_text, stage="human_plan")
+            except SafetyPolicyViolation as error:
+                event = error.event.model_copy(update={"workflow_id": workflow_id})
+                log_event(
+                    self._logger,
+                    "safety_intervention",
+                    request_id=workflow_id,
+                    stage="human_plan",
+                    action="blocked",
+                    rule_ids=event.rule_ids,
+                )
+                raise SafetyPolicyViolation(str(error), event) from error
         async with self._resume_lock:
             snapshot = await self.graph.aget_state(config)
             state = snapshot.values
@@ -727,6 +800,10 @@ class ResearchWorkflow:
                 search_calls=state.get("usage", {}).get("search_calls", 0),
                 workflow_events=state["workflow_events"],
                 created_at=state["created_at"],
+                safety_events=[
+                    SafetyEvent.model_validate(item)
+                    for item in state.get("safety_events", [])
+                ],
             )
         return self._build_research_result(state)
 
@@ -776,4 +853,8 @@ class ResearchWorkflow:
             search_provider_label=self._search_provider.provider_name,
             search_is_simulated=self._search_provider.is_simulated,
             elapsed_ms=elapsed_ms,
+            safety_events=[
+                SafetyEvent.model_validate(item)
+                for item in state.get("safety_events", [])
+            ],
         )

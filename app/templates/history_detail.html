@@ -26,6 +26,12 @@
           <div><dt>Approval</dt><dd>{{ record.approval_decision }} · modified: {{ record.plan_modified }}</dd></div>
         </dl>
       </section>
+      {% if record.safety_events %}
+      <section class="panel safety-panel">
+        <h2>Saved safety events</h2>
+        <ul class="safety-list">{% for event in record.safety_events %}<li><strong>{{ event.action|replace('_', ' ')|title }}</strong>{% if event.subject_id %} <code>{{ event.subject_id }}</code>{% endif %}<span>{{ event.reason }}</span></li>{% endfor %}</ul>
+      </section>
+      {% endif %}
       <section class="panel">
         <h2>Approved plan</h2>
         <ol class="plan-list">{% for step in record.plan.steps %}<li><div class="step-number">{{ "%02d"|format(step.order) }}</div><div><h3>{{ step.title }}</h3><p>{{ step.purpose }}</p></div></li>{% endfor %}</ol>
@@ -38,7 +44,7 @@
         <h3>Citations</h3>
         <ul class="citation-list">{% for citation in record.citations %}<li><strong>[{{ citation.citation_id }}]</strong> {{ citation.title }} — {{ citation.url }}</li>{% else %}<li>No citations were saved.</li>{% endfor %}</ul>
         <h3>Source metadata</h3>
-        <ul class="citation-list">{% for source in record.sources %}<li><strong>{{ source.source_id }}</strong> {{ source.title }} — {{ source.provider }}</li>{% endfor %}</ul>
+        <ul class="citation-list">{% for source in record.sources %}<li><strong>{{ source.source_id }}</strong> {{ source.title }} — {{ source.provider }}{% if source.instruction_like %} · quarantined untrusted content{% endif %}</li>{% endfor %}</ul>
       </section>
       {% else %}
       <section class="panel cancellation"><strong>Research was cancelled</strong><span>No retrieval, sources, citations, or report were stored.</span></section>

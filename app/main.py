@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from time import perf_counter
@@ -32,6 +33,13 @@ from app.research_workflow import (
     WorkflowNotFoundError,
 )
 from app.search import SearchProvider, build_search_provider
+from app.safety import (
+    RateLimitExceeded,
+    SafetyInspection,
+    SafetyPolicyViolation,
+    SlidingWindowRateLimiter,
+    safety_event,
+)
 from app.validation import QuestionValidationError, normalize_question
 from app.workflow import PlanningWorkflow
 
@@ -44,6 +52,7 @@ def create_app(
     search_provider: SearchProvider | None = None,
     memory_repository: ResearchMemoryRepository | None = None,
     checkpointer: BaseCheckpointSaver | None = None,
+    rate_limiter: SlidingWindowRateLimiter | None = None,
 ) -> FastAPI:
     """Application factory supporting deterministic provider injection in tests."""
 
@@ -54,6 +63,17 @@ def create_app(
     selected_plan_model = plan_model or DeterministicPlanModel()
     selected_search_provider = search_provider or build_search_provider()
     selected_memory = memory_repository or build_memory_repository()
+    try:
+        configured_request_limit = int(
+            os.getenv("DEEPTRACE_RATE_LIMIT_PER_MINUTE", "30")
+        )
+    except ValueError:
+        configured_request_limit = 30
+    request_limit = max(1, min(configured_request_limit, 300))
+    selected_rate_limiter = rate_limiter or SlidingWindowRateLimiter(
+        max_requests=request_limit,
+        window_seconds=60,
+    )
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
@@ -75,8 +95,8 @@ def create_app(
 
     application = FastAPI(
         title="DeepTrace",
-        description="Phase 5 durable research memory and human-approved workflow",
-        version="0.5.0",
+        description="Phase 6 layered safety for durable human-approved research",
+        version="0.6.0",
         lifespan=lifespan,
     )
     application.mount(
@@ -86,10 +106,59 @@ def create_app(
     )
     application.state.planning_workflow = PlanningWorkflow(selected_plan_model)
     application.state.memory_repository = selected_memory
+    application.state.rate_limiter = selected_rate_limiter
+
+    @application.middleware("http")
+    async def limit_mutating_requests(request: Request, call_next):
+        if request.method == "POST":
+            client = request.client.host if request.client else "unknown"
+            route_group = (
+                "research-decision"
+                if request.url.path.startswith("/research/")
+                else request.url.path
+            )
+            try:
+                application.state.rate_limiter.check(f"{client}:{route_group}")
+            except RateLimitExceeded as error:
+                inspection = SafetyInspection(
+                    "reject",
+                    ("request_rate_limit",),
+                    "The application-level request limit was exceeded.",
+                )
+                event = safety_event(
+                    event_type="rate_limit_exceeded",
+                    stage="request",
+                    action="blocked",
+                    inspection=inspection,
+                )
+                log_event(
+                    logger,
+                    "safety_intervention",
+                    stage="request",
+                    action="blocked",
+                    rule_ids=event.rule_ids,
+                    route=route_group,
+                )
+                return templates.TemplateResponse(
+                    request=request,
+                    name="index.html",
+                    context={
+                        "question": "",
+                        "plan": None,
+                        "pending": None,
+                        "research": None,
+                        "cancelled": None,
+                        "result": None,
+                        "error": str(error),
+                        "safety_events": [event],
+                    },
+                    status_code=429,
+                )
+        return await call_next(request)
 
     @application.get("/health")
     async def health() -> dict[str, str]:
-        return {"status": "healthy", "service": "deeptrace", "phase": "5"}
+        return {"status": "healthy", "service": "deeptrace", "phase": "6"}
 
     @application.get("/", response_class=HTMLResponse)
     async def home(request: Request) -> HTMLResponse:
@@ -151,6 +220,28 @@ def create_app(
                 },
                 status_code=400,
             )
+        except SafetyPolicyViolation as error:
+            log_event(
+                logger,
+                "safety_intervention",
+                stage="user_input",
+                action="blocked",
+                rule_ids=error.event.rule_ids,
+                route="/plan",
+            )
+            return templates.TemplateResponse(
+                request=request,
+                name="index.html",
+                context={
+                    "question": question,
+                    "plan": None,
+                    "research": None,
+                    "result": None,
+                    "error": str(error),
+                    "safety_events": [error.event],
+                },
+                status_code=400,
+            )
         except Exception:
             logger.exception(
                 "request_failed",
@@ -196,6 +287,7 @@ def create_app(
                     "cancelled": None,
                     "result": pending,
                     "error": None,
+                    "safety_events": pending.safety_events,
                 },
             )
         except QuestionValidationError as error:
@@ -217,6 +309,30 @@ def create_app(
                     "cancelled": None,
                     "result": None,
                     "error": str(error),
+                },
+                status_code=400,
+            )
+        except SafetyPolicyViolation as error:
+            log_event(
+                logger,
+                "safety_intervention",
+                stage="user_input",
+                action="blocked",
+                rule_ids=error.event.rule_ids,
+                route="/research",
+            )
+            return templates.TemplateResponse(
+                request=request,
+                name="index.html",
+                context={
+                    "question": question,
+                    "plan": None,
+                    "pending": None,
+                    "research": None,
+                    "cancelled": None,
+                    "result": None,
+                    "error": str(error),
+                    "safety_events": [error.event],
                 },
                 status_code=400,
             )
@@ -331,6 +447,7 @@ def create_app(
                         "cancelled": outcome,
                         "result": outcome,
                         "error": memory_error,
+                        "safety_events": outcome.safety_events,
                     },
                 )
             verification_by_source = {
@@ -361,7 +478,24 @@ def create_app(
                     "result": outcome,
                     "verification_by_source": verification_by_source,
                     "error": memory_error,
+                    "safety_events": outcome.safety_events,
                 },
+            )
+        except SafetyPolicyViolation as error:
+            return templates.TemplateResponse(
+                request=request,
+                name="index.html",
+                context={
+                    "question": pending.plan.question if pending else "",
+                    "plan": pending.plan if pending else None,
+                    "pending": pending,
+                    "research": None,
+                    "cancelled": None,
+                    "result": pending,
+                    "error": str(error),
+                    "safety_events": [error.event],
+                },
+                status_code=400,
             )
         except (ValidationError, ValueError) as error:
             return templates.TemplateResponse(

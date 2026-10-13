@@ -59,6 +59,15 @@ The final submission requires a factual 200–300 word narrative per team member
 - Added configurable in-memory, official async SQLite, and official async PostgreSQL checkpoint lifecycles. SQLite proved that a pending real interrupt survives saver/workflow recreation and resumes the same UUID. PostgreSQL and live GCS remain implemented but unverified because no infrastructure was configured.
 - Added long-term-memory Scenarios A–G, mocked GCS adapter tests, history UI tests, and restart-safe HITL coverage while preserving all prior workflow tests. The suite reached 46 passing tests before final verification.
 
+### 2026-10-12 — Phase 6 layered safety and adversarial testing
+
+- Reconfirmed the clean Phase 5 commit, synchronization with `origin/main`, and all 46 baseline tests before modification.
+- Added typed, deterministic safety inspection at user input and human-modified plan boundaries. High-confidence override, prompt-disclosure, approval-bypass, verification-bypass, and graph-manipulation requests are rejected before protected work; defensive discussion may continue with a safety annotation.
+- Strengthened the untrusted-evidence boundary. Retrieved snippets with instruction-like signals are quarantined and rejected from verification, critic support, synthesis, and citations while graph routing, iteration counters, approval, and citation IDs remain application-owned.
+- Added structured redacted safety events, bounded per-process POST rate limiting, configurable search timeouts, plan-field limits, UI safety feedback, and memory-safe persistence of safety metadata without retrieved source bodies.
+- Added a reproducible adversarial harness with the exact PI-001, PI-002, and PI-003 payloads. The local run executed three attacks, safely blocked/quarantined all three, recorded three guardrail triggers and zero unsafe objective successes, and accepted one defensive benign control without blocking. Results were saved in `eval/adversarial_results_local.json`; deployed-system reruns remain open.
+- Documented the threat model, mitigations, residual lexical/authentication/concurrency limits, and the distinction between locally verified safety semantics and unverified deployed behavior. No live provider, cloud infrastructure, deployment, quantitative benchmark, or Phase 7 work was started.
+
 ## Final per-member narrative
 
 Not yet written. Replace this section near submission time with 200–300 factual words per team member based on the notes above and subsequent dated entries.

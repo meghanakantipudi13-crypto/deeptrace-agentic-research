@@ -58,7 +58,7 @@ def test_health_endpoint() -> None:
         response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "healthy", "service": "deeptrace", "phase": "5"}
+    assert response.json() == {"status": "healthy", "service": "deeptrace", "phase": "6"}
 
 
 def test_main_page_loads() -> None:
@@ -66,7 +66,7 @@ def test_main_page_loads() -> None:
         response = client.get("/")
 
     assert response.status_code == 200
-    assert "Approve, research, and revisit the evidence" in response.text
+    assert "Research with visible safety boundaries" in response.text
     assert "No sources were retrieved" not in response.text
 
 
@@ -138,7 +138,7 @@ def test_approval_route_resumes_and_renders_research_trace() -> None:
     assert search.calls
     assert "Research iterations" in response.text
     assert "Termination: evidence sufficient" in response.text
-    assert "Phase 5 boundary reached" in response.text
+    assert "Phase 6 local boundary reached" in response.text
     assert "Approval: approve" in response.text
 
 

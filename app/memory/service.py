@@ -26,6 +26,7 @@ def record_from_outcome(
             provider_mode="simulated" if outcome.plan.is_simulated else "real",
             provider_label=outcome.plan.provider_label,
             termination_reason="human_cancelled",
+            safety_events=outcome.safety_events,
         )
     return ResearchMemoryRecord(
         session_id=outcome.request_id,
@@ -49,8 +50,10 @@ def record_from_outcome(
                 provider=source.provider,
                 retrieved_at=source.retrieved_at,
                 is_simulated=source.is_simulated,
+                instruction_like=source.instruction_like,
             )
             for source in outcome.sources
         ],
         usage=outcome.usage,
+        safety_events=outcome.safety_events,
     )

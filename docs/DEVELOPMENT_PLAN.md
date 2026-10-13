@@ -54,11 +54,12 @@ The explicitly approved Phase 2 scope moved retrieval/verification ahead of the 
 
 ## Phase 6 — Layered safety subsystem
 
+- **Status:** Complete and verified locally; deployed adversarial execution remains open.
 - **Objective:** Enforce trust boundaries and resource/tool limits.
-- **Components:** Input/injection controls, untrusted-content wrappers, state policy, output/citation validation, budgets, redacted logs.
+- **Components:** Scored input/plan inspection, untrusted-content quarantine, trusted graph/state policy, output/citation validation, bounded resources/timeouts, redacted events, visible UI interventions, per-process request limiting, and a reusable exact-payload runner.
 - **Rubric addressed:** Safety, ethics, alignment.
-- **Tests:** Benign/malicious input unit set; retrieved instruction cannot alter state; logging secret canary absent; loop/cost caps.
-- **Completion evidence:** Safety test report; still not the required deployed attacks.
+- **Tests:** Benign/ambiguous/direct input, malicious modified plan, PI-001/002/003 graph assertions, quarantine persistence, redacted logs, rate limit, schema/resource bounds, and all prior regressions.
+- **Completion evidence:** 56 tests pass; `eval/adversarial_results_local.json` records 3/3 attacks blocked, 3/3 guardrails triggered, 0 unsafe objectives, and one accepted benign control. This still does not satisfy the required deployed attacks.
 
 ## Phase 7 — Evaluation harness and instrumentation
 

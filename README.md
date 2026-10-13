@@ -2,7 +2,7 @@
 
 DeepTrace is a developing production-ready agentic research and source-verification platform for CSCI 599 Assignment 4. A user will eventually submit a research question, review a generated plan, and—only after approving or modifying that plan—allow the system to iteratively retrieve, assess, verify, and synthesize evidence with traceable citations.
 
-This repository has completed **Phase 5: durable cross-session research memory**. The Phase 4 approval gate and bounded iterative research graph remain intact. Terminal sessions are now written through a typed repository abstraction, listed at `/history`, and reopened by UUID. A filesystem provider proves local restart durability; a production GCS adapter and an official PostgreSQL checkpoint configuration are implemented but not live-cloud verified. The complete safety subsystem, deployment, quantitative evaluation, and a production model remain unimplemented. Status claims are tracked in [RUBRIC_COMPLIANCE.md](RUBRIC_COMPLIANCE.md).
+This repository has completed **Phase 6: layered safety and local adversarial verification**. The approval, iterative research, and durable-memory features remain intact. Deterministic controls now inspect direct input and modified plans, quarantine instruction-like evidence, preserve trusted routing and budgets, validate citations, emit redacted safety events, enforce an application-level request limit, and display interventions. Three required prompt-injection categories pass locally with reproducible evidence, but the assignment's deployed-system attack requirement remains open. Deployment, quantitative evaluation, and a production model remain unfinished.
 
 ## Problem
 
@@ -16,7 +16,7 @@ The minimum planned workflow is:
 2. Generate a structured research plan.
 3. Persist the plan and pause at a real approval checkpoint.
 4. On approval, retrieve evidence for each sub-question.
-5. score relevance, quality, conflicts, and coverage.
+5. Score relevance, quality, conflicts, and coverage.
 6. Verify candidate claims against cited evidence.
 7. Let a critic identify evidence gaps and revise actual search tasks.
 8. Repeat within a deterministic iteration budget.
@@ -47,18 +47,22 @@ All four are verified at the deterministic/local level. Long-term memory is spec
 - **Research memory:** `ResearchMemoryRepository` separates user-facing history from graph checkpoints. The filesystem adapter atomically stores bounded schema-v1 JSON for local verification. The GCS adapter uses `research-sessions/{uuid}.json`, ADC, create-only generation preconditions, and `DEEPTRACE_GCS_BUCKET`; its mocked contract passes, but no live bucket was used.
 - **Write policy:** completed sessions retain the approved plan, report, citations, bounded source metadata, provider/usage facts, and timestamps. Cancelled sessions retain status and plan metadata but no report, citations, sources, or usage. Failed/incomplete workflows are not promoted to research history; pending workflows belong only to the configured checkpointer.
 - **Evaluation:** repeatable custom harness with versioned fixtures and raw JSONL/CSV results
-- **Observability:** structured JSON events cover iteration number, critic decisions, gap counts, selected routes, follow-up queries, added/accepted evidence, termination reason, cumulative provider usage, and latency without logging external document contents. Cloud export remains future work.
+- **Observability:** structured JSON events cover workflow decisions, persistence, and redacted safety interventions. `SafetyEvent` records stage/action/rule IDs and identifiers without inspected payloads, prompts, credentials, or report content. Cloud export remains future work.
 - **Deployment candidate:** the assignment-specific Google Cloud Run Instances + Hermes Agent path, pending instructor clarification documented in [docs/DEPLOYMENT_COMPLIANCE.md](docs/DEPLOYMENT_COMPLIANCE.md)
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for component boundaries and state transitions.
 
 ## Safety and guardrails
 
-Only a validated POST carrying an `approve`, `modify`, or `reject` decision can cross the approval checkpoint. Unknown, completed, cancelled, malformed, and duplicate resumes are rejected before research. Retrieved content and model output occur after this boundary and cannot approve a workflow. Existing retrieved-content isolation, trusted critic routing, iteration ceilings, and citation validation remain active. This is not the complete assignment safety subsystem, and the three required deployed attacks have not been run.
+The Phase 6 pipeline is `normalize → inspect input → typed plan → real HITL → bounded retrieval → inspect/quarantine evidence → verify → critic → citation closure → typed output → validated memory`. High-confidence multi-signal control-bypass requests are rejected; defensively framed safety research is allowed with annotation. Modified plans pass the same protected-control inspection before resume. Retrieved instructions are marked, rejected by verification, excluded from synthesis/citations, and unable to alter fixed graph edges, trusted counters, approval state, or permissions.
+
+Resource controls cap questions at 500 characters, plans at eight items, initial/follow-up queries at 3/2, results per query at 3, retained sources at 12, source content at 1,500 characters, retrieval passes at 2, and memory records at 1 MB. Tavily requests have a bounded configurable timeout. A per-process/IP sliding window defaults to 30 POSTs/minute; shared proxy-level rate limiting remains deployment work.
+
+See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and [eval/adversarial_results_local.json](eval/adversarial_results_local.json). Local attacks PI-001/002/003 are verified; the same payloads have **not** been run against a deployed system.
 
 ## Evaluation
 
-The proposed methodology and honest placeholders are in [EVALUATION_REPORT.md](EVALUATION_REPORT.md). Quantitative results, adversarial outcomes, costs, and deployment claims will be added only after actual runs.
+The proposed methodology, Phase 6 local adversarial results, and honest placeholders are in [EVALUATION_REPORT.md](EVALUATION_REPORT.md). Representative quantitative results, costs, and deployment claims remain open and will be added only after actual runs.
 
 ## Development plan
 
@@ -82,6 +86,7 @@ Copy `.env.example` to a local `.env` only after implementation begins. Never co
 - `SEARCH_PROVIDER=tavily` plus `TAVILY_API_KEY` enables the real Tavily adapter.
 - `DEEPTRACE_MEMORY_BACKEND=filesystem` uses `DEEPTRACE_MEMORY_DIR` (default `.deeptrace-memory`) locally; `gcs` requires `DEEPTRACE_GCS_BUCKET` and Application Default Credentials.
 - `DEEPTRACE_CHECKPOINT_BACKEND=memory|sqlite|postgres` chooses graph state storage. SQLite is local/test-only. PostgreSQL requires `DEEPTRACE_POSTGRES_URI`; run `DEEPTRACE_POSTGRES_SETUP=true` only for controlled initial schema setup.
+- `DEEPTRACE_RATE_LIMIT_PER_MINUTE` controls the bounded per-process POST allowance (default 30, maximum 300).
 
 If Tavily is requested without a key, DeepTrace safely falls back to visibly simulated fixtures. Do not paste keys into source files or chat.
 
@@ -101,7 +106,7 @@ The default planner and search provider are simulated and perform no external ca
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-The suite includes 46 tests. It preserves all Phase 1–4 coverage and adds durable-memory Scenarios A–G, mocked GCS save/load/list/error tests, history UI tests, and a real SQLite checkpoint test that closes one saver, opens a new workflow instance, recovers the pending interrupt, and resumes the same UUID. Mocked GCS does not prove live connectivity, and SQLite does not prove PostgreSQL production behavior.
+The suite includes 56 tests. It preserves all Phase 1–5 coverage and adds direct-input/false-positive policy tests, malicious-plan rejection, retrieved-evidence quarantine, safety-event redaction/persistence, resource bounds, visible rate limiting, and the exact PI-001/002/003 runner assertions. Reproduce the local adversarial artifact with `python -m adversarial_tests.run_local`.
 
 ## Deployment
 
@@ -109,15 +114,17 @@ Not deployed. There is no live URL. Ordinary Cloud Run is not being treated as e
 
 ## Limitations
 
-- The default mode uses simulated plans and sources. No live Tavily call was made during Phase 5 verification because no credential was configured.
+- The default mode uses simulated plans and sources. No live Tavily call was made during Phase 6 verification because no credential was configured.
 - The preliminary synthesis is extractive and based on search snippets, not full-document analysis.
 - Relevance and quality signals are basic deterministic heuristics and cannot establish objective truth.
 - Correction is deterministic and limited to two total retrieval passes; conflict detection remains unimplemented beyond an explicit empty/limited signal because snippets do not encode normalized claim stances.
 - The default checkpointer is still process-local. Set `sqlite` for local restart testing or `postgres` for the production architecture; the live PostgreSQL path has not been tested.
 - The process-local resume lock is only a fast local guard. Checkpoint state remains authoritative, but cross-worker race behavior still needs live PostgreSQL concurrency tests.
 - Filesystem memory proves restart semantics on one machine, not Cloud Run durability. GCS is implemented and mock-tested but not connected to a live bucket.
-- Phase 5 has no authentication, authorization, or CSRF subsystem; it assumes a trusted local user with the workflow URL. Those controls are required before deployment.
-- The complete safety subsystem and quantitative evaluation harness remain unfinished.
+- Phase 6 has no authentication, authorization, CSRF, actor binding, or shared distributed rate-limit subsystem; those controls are required before deployment.
+- Injection inspection is lexical and can miss obfuscation or novel phrasing. Fixed graph/state/citation boundaries remain the primary protection.
+- Local adversarial success does not satisfy the required deployed-system attack evidence.
+- The quantitative research-quality evaluation harness remains unfinished.
 - The exact required relationship between DeepTrace and Hermes/OpenClaw needs instructor confirmation.
 - GitHub CLI, Docker, and Google Cloud CLI were not detected locally during Phase 0.
 
@@ -129,7 +136,11 @@ Not deployed. There is no live URL. Ordinary Cloud Run is not being treated as e
 │   ├── ARCHITECTURE.md
 │   ├── DEPLOYMENT_COMPLIANCE.md
 │   ├── DEVELOPMENT_PLAN.md
-│   └── RISK_REGISTER.md
+│   ├── RISK_REGISTER.md
+│   └── THREAT_MODEL.md
+├── adversarial_tests/
+│   ├── attacks.json
+│   └── run_local.py
 ├── app/
 │   ├── providers/
 │   ├── memory/
