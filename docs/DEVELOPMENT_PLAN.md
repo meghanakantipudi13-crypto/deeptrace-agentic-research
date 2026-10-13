@@ -63,11 +63,12 @@ The explicitly approved Phase 2 scope moved retrieval/verification ahead of the 
 
 ## Phase 7 — Evaluation harness and instrumentation
 
+- **Status:** Complete and verified for deterministic/local scope; production evaluation remains open.
 - **Objective:** Produce repeatable quantitative results and measured usage/cost inputs.
-- **Components:** Versioned cases, runner, scorers, raw JSONL/CSV, summary generation, dated pricing config.
+- **Components:** Versioned 27-case JSON dataset, strict schemas, real-workflow runner, expected/actual scorers, failure retention, raw JSON, generated Markdown, and preliminary cost inputs.
 - **Rubric addressed:** Evaluation/results, failure modes, cost analysis.
-- **Tests:** Scorer unit tests; reproducible fixture run; schema validation; aggregate recomputation.
-- **Completion evidence:** Pilot results clearly labeled pilot and linked to commit/config.
+- **Tests:** Dataset/schema rejection, scorer mismatches, zero denominators, serialization/overwrite policy, failure visibility, and derived safety aggregation.
+- **Completion evidence:** 63-test suite plus complete `deeptrace-eval-v1` run: 27/27 expected outcomes, 37/41 evidence coverage, 39/39 valid citations, and raw/Markdown artifacts. Results are explicitly local/deterministic.
 
 ## Phase 8 — Deployed adversarial evaluation
 

@@ -108,6 +108,10 @@ The full applied threat model and limitations are in `docs/THREAT_MODEL.md`.
 
 Implemented events cover request/workflow stages, approval transitions, critic routes, persistence operations, checkpoint selection, provider failures, and `safety_intervention`. Events include IDs, timestamps, duration, counts, decision codes, provider facts, and named safety rules—not raw secrets, evidence bodies, or unnecessary prompts. Cloud export/dashboard/alerting remain future deployment work.
 
+## Evaluation boundary
+
+Phase 7 adds an offline evaluation package, not a runtime application component. A versioned JSON dataset drives deterministic plan/search adapters through the same `ResearchWorkflow`; scorers compare public typed outputs and state facts, then serialize raw case results and aggregate metrics. Safety cases read the canonical Phase 6 artifact. Evaluation code does not alter graph routes, providers, UI behavior, or persistence. Local fixture timings and outcomes are kept distinct from future live-provider and deployed evaluation.
+
 ## Deployment shape pending clarification
 
 The core is packaged as one container. The assignment-specific adapter may either run DeepTrace as a Hermes skill/plugin/workspace process or place a Hermes gateway and DeepTrace process in the same Cloud Run Instance if the platform and instructor permit it. Ordinary request-driven Cloud Run remains a portability fallback, not the claimed submission topology.

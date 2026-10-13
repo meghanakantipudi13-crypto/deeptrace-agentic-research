@@ -8,20 +8,20 @@ Status vocabulary is restricted to: **NOT STARTED**, **IN PROGRESS**, **IMPLEMEN
 
 | Requirement | Planned implementation | Status | Verification evidence |
 |---|---|---:|---|
-| Original agentic application | DeepTrace research and source-verification workflow | IN PROGRESS | Phase 6 adds layered safety and reproducible local attacks; deployment and final evaluation remain absent |
+| Original agentic application | DeepTrace research and source-verification workflow | IN PROGRESS | Phase 7 adds a 27-case quantitative local evaluation; deployment and production evaluation remain absent |
 | Assignment 3+ complexity | Stateful plan/approve/retrieve/verify/critic/correct/synthesize/persist graph | IN PROGRESS | Local durable memory and checkpoint restart behavior verified; production deployment absent |
 | At least 3 advanced features | Four features listed below | VERIFIED | All four selected features verified locally; production qualifications remain explicit |
 | Agentic RAG | Iterative query generation, retrieval, evidence scoring, claim verification | VERIFIED | 2026-10-04 `tests/test_research_workflow.py::test_scenario_b_insufficient_evidence_triggers_targeted_correction`: expected targeted second retrieval; actual 2 passes, critic false→true, cited synthesis, PASS. Deterministic provider only; live provider remains unverified |
 | Planning/self-correction | Typed plan plus critic route that changes subsequent retrieval | VERIFIED | 2026-10-04 Scenario B expected/actual changed query and second retrieval, PASS; `test_scenario_c_remains_insufficient_and_stops_at_budget` expected/actual 2-pass safe stop, PASS |
 | Human-in-the-loop | Interruptible approve/modify/cancel gate before retrieval | VERIFIED | Phase 4 Scenarios A–F remain passing; `test_durable_checkpoint.py` additionally recovers and resumes the same pending UUID through a newly opened SQLite saver/workflow. PostgreSQL remains unverified |
 | Long-term memory | Cross-session typed research history | VERIFIED | **Local durable persistence VERIFIED:** `tests/test_memory.py` Scenarios A–G and UI recreation test save JSON, create a new repository/app instance, reload reports/citations, list history, and enforce cancellation/corruption/identifier policy. **Production GCS IMPLEMENTED — UNVERIFIED:** mocked adapter tests only |
-| Safety subsystem | Deterministic input/plan inspection, HITL permission boundary, evidence quarantine, trusted graph/budgets, citation closure, safe memory, events, rate limiting | VERIFIED | **Local only:** 2026-10-12 automated suite plus PI-001/002/003 artifact; 56 tests pass. Deployment controls and deployed attack evidence remain open |
+| Safety subsystem | Deterministic input/plan inspection, HITL permission boundary, evidence quarantine, trusted graph/budgets, citation closure, safe memory, events, rate limiting | VERIFIED | **Local only:** Phase 6 PI-001/002/003 artifact plus current 63-test regression suite. Deployment controls and deployed attack evidence remain open |
 | Injection attack #1 | Direct user instruction override/system-prompt extraction | IMPLEMENTED — UNVERIFIED | PI-001 local: exact payload rejected before workflow/search, redacted event, PASS. Not executed against deployed system |
 | Injection attack #2 | Indirect injection embedded in retrieved content | IMPLEMENTED — UNVERIFIED | PI-002 local: S1 quarantined/rejected, critic false→true over 2 passes, S1 absent from citations, PASS. Not executed against deployed system |
 | Injection attack #3 | Retrieved attempt to alter approval/iteration/critic/citations | IMPLEMENTED — UNVERIFIED | PI-003 local: 2 critic calls, trusted max=2, explicit human approval retained, S999 absent, PASS. Not executed against deployed system |
-| Quantitative evaluation | Capability-matched repeatable custom harness | NOT STARTED | None |
-| Sample size/date | Recorded in raw run metadata and report | NOT STARTED | None |
-| Failure modes | Failure taxonomy plus observed failures | IN PROGRESS | Phase 6 records three attempted unsafe objectives and their safe outcomes; no representative research-quality failure analysis yet |
+| Quantitative evaluation | Capability-matched repeatable custom harness | VERIFIED | **DETERMINISTIC/LOCAL:** all 27 versioned cases executed; raw JSON and generated Markdown record calculated metrics. Live/production evaluation remains open |
+| Sample size/date | Recorded in raw run metadata and report | VERIFIED | 27 cases; executed 2026-10-13 UTC / 2026-10-12 America/Los_Angeles; category counts and environment retained |
+| Failure modes | Failure taxonomy plus observed failures | IN PROGRESS | No unexpected failures in the final local run; four designed evidence gaps terminated safely; harness preserves synthetic mismatch failures; live failure analysis remains open |
 | Mitigations | Tested controls linked to failures | IN PROGRESS | Local deterministic routing, loop-budget, citation, input-blocking, and evidence-quarantine controls tested; deployed and broad-spectrum evaluation remains absent |
 | Cost analysis | Token/API/storage/latency counters and pricing assumptions | IN PROGRESS | Search/result/call/credit and latency facts captured; no dollar analysis |
 | Approved deployment | Cloud Run Instances + Hermes/OpenClaw topology | BLOCKED | Instructor clarification required; see deployment document |
@@ -34,6 +34,7 @@ Status vocabulary is restricted to: **NOT STARTED**, **IN PROGRESS**, **IMPLEMEN
 | Phase 4 local HITL | LangGraph interrupt/checkpoint/resume approval gate | VERIFIED | 30-test suite includes HITL Scenarios A–F, approval UI paths, and approved Phase 3 regressions; local deterministic verification, 2026-10-05 |
 | Phase 5 local durable memory | Versioned filesystem history plus list/detail UI | VERIFIED | 46-test suite; Scenarios A–G, new repository/application reload, citation survival, cancellation policy, corrupt/path safety, 2026-10-05 |
 | Phase 6 local safety | Layered controls plus reproducible adversarial harness | VERIFIED | 56-test suite and `eval/adversarial_results_local.json`: 3 attacks executed, 3 blocked, 3 guardrails triggered, 0 unsafe objectives succeeded; one benign control accepted, 2026-10-12 |
+| Phase 7 deterministic evaluation | Versioned capability-matched custom harness | VERIFIED | **DETERMINISTIC/LOCAL:** 27/27 cases met expected behavior; 37/41 evidence coverage, 39/39 valid citations, 0 unsupported citations, 0 unexpected errors; raw JSON and Markdown retained, 2026-10-13 UTC |
 | Deployed adversarial execution | Rerun PI-001/002/003 unchanged against live URL | NOT STARTED | Local evidence is explicitly insufficient for this assignment requirement |
 | GCS research-memory provider | UUID-keyed schema-v1 JSON objects using ADC | IMPLEMENTED — UNVERIFIED | Fake-client save/load/list/malformed/provider-error tests pass; no configured bucket or live credentialed call |
 | Production PostgreSQL checkpointer | Official async LangGraph saver selected by environment | IMPLEMENTED — UNVERIFIED | Imports/configuration/lifespan implemented with controlled `setup()` flag; no database provisioned or live concurrency/restart test |
@@ -42,10 +43,10 @@ Status vocabulary is restricted to: **NOT STARTED**, **IN PROGRESS**, **IMPLEMEN
 | Retrieved-content structural boundary | Untrusted typed content cannot alter graph routing or loop controls | VERIFIED | Scenario B embeds sufficiency/iteration/synthesis/citation manipulation; critic remains insufficient and executes the bounded correction route |
 | Foundational input validation | Normalize, reject blank, enforce 500-character limit | VERIFIED | Automated valid/empty/over-length/normalization tests |
 | Health endpoint | `GET /health` | VERIFIED | Automated Phase 6 response test plus local smoke test |
-| README | Accurate current documentation | IN PROGRESS | Phase 6 threat model, safety controls, local evidence, and deployment limitations documented; final results incomplete |
+| README | Accurate current documentation | IN PROGRESS | Phase 7 dataset, CLI, local quantitative results, safety evidence, and production limitations documented; final submission results remain incomplete |
 | Demo | 5–10 minute MP4 showing end-to-end run and guardrail | NOT STARTED | None |
 | Presentation | 10+ slides covering required topics | NOT STARTED | None |
-| Evaluation report | Markdown, optionally exported to PDF | IN PROGRESS | Methodology scaffold plus deterministic workflow, persistence, and Phase 6 local adversarial results; representative quantitative evaluation absent |
+| Evaluation report | Markdown, optionally exported to PDF | IN PROGRESS | Actual 27-case deterministic/local metrics, safety integration, failure method, limitations, and preliminary cost basis recorded; production results absent |
 | PROCESS_LOG | Final 200–300 words per member | IN PROGRESS | Chronological notes started; final narrative not written |
 
 ## Mandatory categories

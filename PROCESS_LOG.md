@@ -68,6 +68,15 @@ The final submission requires a factual 200–300 word narrative per team member
 - Added a reproducible adversarial harness with the exact PI-001, PI-002, and PI-003 payloads. The local run executed three attacks, safely blocked/quarantined all three, recorded three guardrail triggers and zero unsafe objective successes, and accepted one defensive benign control without blocking. Results were saved in `eval/adversarial_results_local.json`; deployed-system reruns remain open.
 - Documented the threat model, mitigations, residual lexical/authentication/concurrency limits, and the distinction between locally verified safety semantics and unverified deployed behavior. No live provider, cloud infrastructure, deployment, quantitative benchmark, or Phase 7 work was started.
 
+### 2026-10-12 — Phase 7 deterministic/local quantitative evaluation
+
+- Reconfirmed the clean Phase 6 commit and all 56 baseline tests before changes. Added no product capability.
+- Created the schema-validated `deeptrace-eval-v1` dataset with 27 cases: six initially sufficient, five correction-required, four persistently insufficient, four citation-integrity, three canonical safety references, and five HITL policy cases.
+- Implemented `python -m eval.run_evaluation` to execute every case, compare expected and actual state, retain failures, calculate core/performance/resource metrics, derive safety results from the Phase 6 artifact, and write raw JSON plus a generated Markdown summary without silently overwriting evidence.
+- Executed the complete dataset. All 27 cases met their specified behavior; evidence coverage was 37/41 (90.244%) because four designed persistent gaps correctly remained unsupported. The run emitted 39 valid citations, accepted zero unsupported citations, and recorded zero unexpected errors.
+- Added seven evaluation-system tests for schemas, invalid data, scoring, zero denominators, derived safety metrics, serialization, overwrite protection, and visible failures. The full suite reached 63 passing tests.
+- Documented that deterministic fixture latency and $0 paid-provider cost do not predict production behavior. Live-provider evaluation, deployed attacks, cloud infrastructure, presentation, and demo remain future phases.
+
 ## Final per-member narrative
 
 Not yet written. Replace this section near submission time with 200–300 factual words per team member based on the notes above and subsequent dated entries.

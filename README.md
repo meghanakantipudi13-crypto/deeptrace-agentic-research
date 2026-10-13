@@ -2,7 +2,7 @@
 
 DeepTrace is a developing production-ready agentic research and source-verification platform for CSCI 599 Assignment 4. A user will eventually submit a research question, review a generated plan, and—only after approving or modifying that plan—allow the system to iteratively retrieve, assess, verify, and synthesize evidence with traceable citations.
 
-This repository has completed **Phase 6: layered safety and local adversarial verification**. The approval, iterative research, and durable-memory features remain intact. Deterministic controls now inspect direct input and modified plans, quarantine instruction-like evidence, preserve trusted routing and budgets, validate citations, emit redacted safety events, enforce an application-level request limit, and display interventions. Three required prompt-injection categories pass locally with reproducible evidence, but the assignment's deployed-system attack requirement remains open. Deployment, quantitative evaluation, and a production model remain unfinished.
+This repository has completed **Phase 7: deterministic/local quantitative evaluation**. A versioned 27-case custom benchmark now measures planning/retrieval termination, self-correction, evidence coverage, citation integrity, HITL policy, and safety behavior through a reproducible CLI. The approval, iterative research, durable-memory, and layered-safety features remain intact. Live-provider research-quality evaluation, deployed adversarial testing, deployment, and a production model remain unfinished.
 
 ## Problem
 
@@ -46,7 +46,7 @@ All four are verified at the deterministic/local level. Long-term memory is spec
 - **Citations:** every emitted `[S#]` ID is validated against a retained source object before rendering.
 - **Research memory:** `ResearchMemoryRepository` separates user-facing history from graph checkpoints. The filesystem adapter atomically stores bounded schema-v1 JSON for local verification. The GCS adapter uses `research-sessions/{uuid}.json`, ADC, create-only generation preconditions, and `DEEPTRACE_GCS_BUCKET`; its mocked contract passes, but no live bucket was used.
 - **Write policy:** completed sessions retain the approved plan, report, citations, bounded source metadata, provider/usage facts, and timestamps. Cancelled sessions retain status and plan metadata but no report, citations, sources, or usage. Failed/incomplete workflows are not promoted to research history; pending workflows belong only to the configured checkpointer.
-- **Evaluation:** repeatable custom harness with versioned fixtures and raw JSONL/CSV results
+- **Evaluation:** `deeptrace-eval-v1` contains 27 deterministic cases across six capability categories. The CLI saves schema-validated raw JSON and a generated Markdown summary while preserving failures.
 - **Observability:** structured JSON events cover workflow decisions, persistence, and redacted safety interventions. `SafetyEvent` records stage/action/rule IDs and identifiers without inspected payloads, prompts, credentials, or report content. Cloud export remains future work.
 - **Deployment candidate:** the assignment-specific Google Cloud Run Instances + Hermes Agent path, pending instructor clarification documented in [docs/DEPLOYMENT_COMPLIANCE.md](docs/DEPLOYMENT_COMPLIANCE.md)
 
@@ -62,7 +62,13 @@ See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and [eval/adversarial_results_l
 
 ## Evaluation
 
-The proposed methodology, Phase 6 local adversarial results, and honest placeholders are in [EVALUATION_REPORT.md](EVALUATION_REPORT.md). Representative quantitative results, costs, and deployment claims remain open and will be added only after actual runs.
+Run the full deterministic evaluation with:
+
+```powershell
+.\.venv\Scripts\python.exe -m eval.run_evaluation --overwrite
+```
+
+The methodology and actual Phase 7 results are in [EVALUATION_REPORT.md](EVALUATION_REPORT.md). The versioned dataset is [deeptrace_eval_v1.json](eval/datasets/deeptrace_eval_v1.json), with machine-readable and human-readable outputs under `eval/results/`. This local fixture evaluation does not measure live-web answer quality or production performance.
 
 ## Development plan
 
@@ -106,7 +112,7 @@ The default planner and search provider are simulated and perform no external ca
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-The suite includes 56 tests. It preserves all Phase 1–5 coverage and adds direct-input/false-positive policy tests, malicious-plan rejection, retrieved-evidence quarantine, safety-event redaction/persistence, resource bounds, visible rate limiting, and the exact PI-001/002/003 runner assertions. Reproduce the local adversarial artifact with `python -m adversarial_tests.run_local`.
+The suite includes 63 tests. It preserves all Phase 1–6 coverage and tests evaluation dataset validation, metric calculations, zero denominators, expected/actual scoring, failure visibility, serialization/no-silent-overwrite behavior, and derived safety metrics. Reproduce the local adversarial artifact with `python -m adversarial_tests.run_local`.
 
 ## Deployment
 
@@ -124,7 +130,7 @@ Not deployed. There is no live URL. Ordinary Cloud Run is not being treated as e
 - Phase 6 has no authentication, authorization, CSRF, actor binding, or shared distributed rate-limit subsystem; those controls are required before deployment.
 - Injection inspection is lexical and can miss obfuscation or novel phrasing. Fixed graph/state/citation boundaries remain the primary protection.
 - Local adversarial success does not satisfy the required deployed-system attack evidence.
-- The quantitative research-quality evaluation harness remains unfinished.
+- Phase 7 evaluates deterministic workflow behavior only. Live-provider relevance, truthfulness, production latency, and deployed reliability remain unevaluated.
 - The exact required relationship between DeepTrace and Hermes/OpenClaw needs instructor confirmation.
 - GitHub CLI, Docker, and Google Cloud CLI were not detected locally during Phase 0.
 
@@ -141,6 +147,13 @@ Not deployed. There is no live URL. Ordinary Cloud Run is not being treated as e
 ├── adversarial_tests/
 │   ├── attacks.json
 │   └── run_local.py
+├── eval/
+│   ├── datasets/deeptrace_eval_v1.json
+│   ├── results/deeptrace_eval_v1_local.json
+│   ├── results/deeptrace_eval_v1_local.md
+│   ├── adversarial_results_local.json
+│   ├── models.py
+│   └── run_evaluation.py
 ├── app/
 │   ├── providers/
 │   ├── memory/
