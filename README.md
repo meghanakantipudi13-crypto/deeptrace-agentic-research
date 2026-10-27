@@ -2,7 +2,7 @@
 
 DeepTrace is a developing production-ready agentic research and source-verification platform for CSCI 599 Assignment 4. A user will eventually submit a research question, review a generated plan, and—only after approving or modifying that plan—allow the system to iteratively retrieve, assess, verify, and synthesize evidence with traceable citations.
 
-This repository has completed **Phase 7** and reached **Phase 8 production-integration readiness**. The deterministic 27-case benchmark remains unchanged. Production mode now fails closed unless Vertex AI, Tavily, GCS, and PostgreSQL are explicitly configured, and a structured Vertex/Gemini planning adapter captures model/token/latency metadata. No provider or cloud integration has been live-verified because credentials, project configuration, and required tooling are absent.
+This repository has completed **Phase 7** and reached **Phase 8 production-integration readiness**. The deterministic 27-case benchmark remains unchanged. Production mode now fails closed unless Vertex AI, Tavily, GCS, and PostgreSQL are explicitly configured, and a structured Vertex/Gemini planning adapter captures model/token/latency metadata. Vertex planning has one controlled live verification; Tavily, GCS, PostgreSQL, and deployment remain unverified.
 
 ## Problem
 

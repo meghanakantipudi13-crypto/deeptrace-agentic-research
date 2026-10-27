@@ -87,4 +87,11 @@ The final submission requires a factual 200–300 word narrative per team member
 - Found no `gcloud`, Docker, Hermes/OpenClaw tools, GCP credentials/project configuration, Tavily key, GCS bucket, or PostgreSQL URI. No billable resource or live provider call was attempted. An initial sandboxed launch made the registered Python interpreter appear unavailable; after the existing environment was upgraded and execution was independently retried with scoped runtime access, Python 3.11.4, dependency consistency, production imports, compilation, and all 67 tests passed.
 - Documented the cost gate, IAM/API expectations, preview/regional/restart limits, required user actions, and one targeted instructor-confirmation question. Phase 8 remains partial and Phase 9 was not started.
 
+### 2026-10-27 — Phase 8 controlled Vertex AI verification
+
+- Confirmed Cloud SDK 590.0.1, project `csci599-deeptrace-510206`, enabled Vertex AI API, and Application Default Credentials resolving to the same quota project without reading or logging tokens.
+- Replaced the retired example `gemini-2.5-flash` identifier with GA `gemini-3.5-flash-lite`, selected the supported `global` endpoint, and made exactly one request through the actual `VertexAIPlanModel.create_plan()` implementation.
+- The request authenticated and returned a valid typed three-item plan. Vertex reported 415 input tokens, 248 output tokens, 663 total tokens, and the provider recorded 6061.887 ms latency. No prompt, response body, credential, or access token was retained.
+- Stored the non-sensitive measurement in `eval/results/vertex_live_smoke_2026-10-27.json`. Vertex planning is now VERIFIED LIVE for this narrow smoke-test scope; Tavily, GCS, PostgreSQL, Hermes, Cloud Run, and Phase 9 remain untouched.
+
 Not yet written. Replace this section near submission time with 200–300 factual words per team member based on the notes above and subsequent dated entries.
