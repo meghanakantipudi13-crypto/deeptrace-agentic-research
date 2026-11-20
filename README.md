@@ -87,7 +87,7 @@ The methodology and actual Phase 7 results are in [EVALUATION_REPORT.md](EVALUAT
 
 Each phase ends with tests and retained evidence. See [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md) and [docs/RISK_REGISTER.md](docs/RISK_REGISTER.md).
 
-Submission materials include the quantitative [evaluation report](EVALUATION_REPORT.md), the individual [process log](PROCESS_LOG.md), the [demo script](docs/DEMO_SCRIPT.md), the [13-slide presentation authoring script](docs/PRESENTATION_OUTLINE.md), and the [submission checklist](SUBMISSION_CHECKLIST.md). The editable deck and recorded MP4 remain user-facing deliverables.
+Submission materials include the quantitative [evaluation report](EVALUATION_REPORT.md), the individual [process log](PROCESS_LOG.md), the [demo script](docs/DEMO_SCRIPT.md), the editable [13-slide technical presentation](deliverables/DeepTrace_Capstone_Presentation.pptx), its reproducible [authoring script](scripts/build_presentation.cjs), and the [submission checklist](SUBMISSION_CHECKLIST.md). Only the recorded MP4 and final Brightspace upload remain user-operated deliverables.
 
 ## Local setup
 

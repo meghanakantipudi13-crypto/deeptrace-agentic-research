@@ -4,7 +4,7 @@
 
 - [x] Source repository with setup, run, deployment, and Capability-to-Code Map in `README.md`
 - [ ] Record and upload a 5–10 minute MP4 using `docs/DEMO_SCRIPT.md`
-- [ ] Create the editable technical presentation from `docs/PRESENTATION_OUTLINE.md` (13 slides; all five required topics)
+- [x] Editable technical presentation contains 13 slides and all five required topics (`deliverables/DeepTrace_Capstone_Presentation.pptx`)
 - [x] Quantitative evaluation report (`EVALUATION_REPORT.md`)
 
 ## Individual deliverable
@@ -17,7 +17,7 @@
 - [x] Run `python -m pip check`
 - [x] Run compilation and `git diff --check`
 - [x] Confirm `.env` is ignored/untracked and scan tracked/changed files for secrets
-- [ ] Confirm the presentation opens and every slide is readable
+- [x] Confirm the presentation opens and every slide is readable (13/13 rendered at 1600×900)
 - [ ] Confirm the MP4 is 5–10 minutes and demonstrates four advanced features plus a guardrail
 - [ ] Replace any team-member placeholders, if applicable
 - [ ] Submit the repository link, presentation, evaluation report, video, and each member's process log in Brightspace

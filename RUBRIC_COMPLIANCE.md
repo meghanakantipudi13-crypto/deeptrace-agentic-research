@@ -47,7 +47,7 @@ Status vocabulary is restricted to: **NOT STARTED**, **IN PROGRESS**, **IMPLEMEN
 | Health endpoint | `GET /health` | VERIFIED | Automated Phase 8 response test passes; prior local smoke coverage retained |
 | README | Setup, run, deployment, and short Capability-to-Code Map | VERIFIED | Current README contains all four items and direct file/line evidence |
 | Demo | 5–10 minute MP4 showing end-to-end run and guardrail | IN PROGRESS | Deterministic demo provider and `docs/DEMO_SCRIPT.md` are ready; user must record/upload the MP4 |
-| Presentation | 10+ slides covering required topics | BLOCKED | Complete 13-slide authoring script is in `docs/PRESENTATION_OUTLINE.md`; editable Spaces deck creation is unavailable in the current task and must be created when that service is enabled |
+| Presentation | 10+ slides covering required topics | VERIFIED | `deliverables/DeepTrace_Capstone_Presentation.pptx` contains 13 editable 16:9 slides covering architecture/design, capabilities/limitations, safety, quantitative evaluation, and future work; all slides were rendered and visually inspected at 1600×900 |
 | Evaluation report | Quantitative Markdown report | VERIFIED | 27-case results, dates, metrics, three attacks, failures/mitigations, limitations, and cost estimates are documented |
 | PROCESS_LOG | Final 200–300 words per member | VERIFIED | 268-word individual narrative covers tools, development, attribution, verification, and learning |
 
