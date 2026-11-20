@@ -40,7 +40,7 @@ ResearchSession
 
 ## Enforced workflow
 
-### Current Phase 6 graph
+### Submission graph
 
 ```text
 START -> start -> plan -> request approval -> approval_checkpoint interrupt
@@ -57,7 +57,7 @@ START -> start -> plan -> request approval -> approval_checkpoint interrupt
 
 The graph accepts a configured LangGraph saver; a UUID `thread_id` identifies the checkpoint. `interrupt()` surfaces a safe plan payload and `Command(resume=...)` supplies a validated human decision to that same thread. Only approve/modify can cross into query generation. The maximum remains two retrieval passes. Retrieved content occurs after approval and cannot select approval or research routes, set sufficiency, alter counters, or increase limits.
 
-### Target full workflow
+### Equivalent state view
 
 ```text
 validate -> plan -> persist WAITING_FOR_APPROVAL
@@ -112,8 +112,8 @@ Implemented events cover request/workflow stages, approval transitions, critic r
 
 Phase 7 adds an offline evaluation package, not a runtime application component. A versioned JSON dataset drives deterministic plan/search adapters through the same `ResearchWorkflow`; scorers compare public typed outputs and state facts, then serialize raw case results and aggregate metrics. Safety cases read the canonical Phase 6 artifact. Evaluation code does not alter graph routes, providers, UI behavior, or persistence. Local fixture timings and outcomes are kept distinct from future live-provider and deployed evaluation.
 
-## Phase 8 production boundary
+## Submission deployment boundary
 
-Development remains deterministic by default. Production selects a structured Vertex/Gemini planner, Tavily retrieval, GCS research memory, and the official PostgreSQL LangGraph saver. `DEEPTRACE_ENV=production` validates this entire set before the app is created and disables simulated fallback. Model identity, input/output/total tokens, call count, and latency flow from the planning response into typed usage metadata without logging prompts.
+Development remains deterministic by default. The capstone submission uses a local FastAPI service, the deterministic model, the development-only correction demo search provider, filesystem research history, and the official SQLite LangGraph saver. This alternative topology runs the complete graph, preserves research and checkpoint state across local process restarts, and produces the recorded evidence without a public endpoint or recurring cloud resources.
 
-The target host is the distinct preview Cloud Run Instance resource. Hermes owns ingress and the authenticated dashboard; DeepTrace is exposed through Hermes' documented dashboard plugin/backend router mechanism. GCS persists terminal research records, while PostgreSQL persists mutable graph checkpoints. Cloud Logging/Monitoring consume structured events under the `cloud_run_instance` resource. This packaging and all cloud calls remain unverified until tooling, credentials, secrets, and a project are available.
+The optional production configuration selects structured Vertex/Gemini planning, Tavily retrieval, GCS research memory, and PostgreSQL checkpoints. `DEEPTRACE_ENV=production` validates this set and disables simulated fallback. Only Vertex structured planning has a controlled live verification. Cloud packaging and the other live adapters remain future work and are not claimed as submission evidence.

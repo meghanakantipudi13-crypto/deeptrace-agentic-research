@@ -57,7 +57,7 @@ Statuses distinguish accepted architecture from later implementation. An accepte
 - **Status:** Foundational content boundary implemented; complete safety phase pending
 - **Context:** Direct and indirect prompt injection are mandatory test cases.
 - **Options considered:** Prompt-only warning; single injection classifier; layered deterministic and model-assisted controls.
-- **Decision:** Keep instructions and retrieved content in distinct typed fields; never concatenate retrieved text into system instructions; normalize and provenance-tag snippets; enforce static graph gates in code; validate URL schemes and citation mappings; annotate obvious instruction-like content and exclude it from synthesis. Later safety work must add full URL/fetch controls, broader detection, budgets, and deployed attacks.
+- **Decision:** Keep instructions and retrieved content in distinct typed fields; never concatenate retrieved text into system instructions; normalize and provenance-tag snippets; enforce static graph gates in code; validate URL schemes and citation mappings; annotate instruction-like content and exclude it from synthesis. Broader detection, URL/fetch controls, and adversarial variants remain future hardening work.
 - **Rationale:** A model cannot authorize bypassing code-enforced workflow policy.
 - **Rubric impact:** Creates defensible controls for all three required attacks.
 - **Tradeoffs:** False positives and false negatives remain and must be measured.
@@ -139,10 +139,20 @@ Statuses distinguish accepted architecture from later implementation. An accepte
 
 ## ADR-014 — Use a Cloud Run Instance with an authenticated Hermes dashboard plugin
 
-- **Status:** Accepted for Phase 8 preparation; live verification and instructor confirmation pending
+- **Status:** Superseded for the capstone submission by ADR-015; retained as optional future production research
 - **Context:** Current Google documentation distinguishes long-lived Cloud Run Instances from services and explicitly lists Hermes as an instance workload. Hermes documents dashboard plugins with frontend tabs and authenticated FastAPI backend routers.
 - **Decision:** Target a preview Cloud Run Instance with Hermes as the ingress/dashboard and expose DeepTrace through a Hermes dashboard plugin. Use Vertex AI through `google-genai` and ADC, Tavily through Secret Manager, GCS for terminal research memory, and the official PostgreSQL saver for LangGraph checkpoints. Never substitute an ordinary Cloud Run service while claiming rubric compliance.
 - **Production policy:** `DEEPTRACE_ENV=production` fails before application startup unless provider selectors and required non-secret configuration/secret presence identify Vertex, Tavily, GCS, and PostgreSQL. Development remains deterministic. Production provider metadata must be visible and captured without prompts or credentials.
 - **Rationale:** This follows both products' supported extension models and produces one authenticated Hermes grader URL while preserving the tested DeepTrace core.
 - **Cost/safety:** Cloud Run Instance compute is billed for its lifecycle; Cloud SQL has recurring cost. No API/resource may be enabled or created before project selection and explicit user approval. Secret versions must be injected, not committed.
 - **Limitations:** No Hermes runtime, container build, GCP project, credentials, live provider, bucket, database, URL, monitor, or alert has been tested. The instructor should confirm that a dashboard plugin is the expected integration boundary.
+
+## ADR-015 — Submit a reproducible local FastAPI deployment
+
+- **Status:** Accepted and verified for the capstone submission
+- **Context:** The assignment permits a justified alternative deployment topology, grades actual behavior through a 5–10 minute recording, and does not require a live application URL. Provisioning continuously billed cloud infrastructure would not improve the evidence for the four selected capabilities.
+- **Decision:** Use the local FastAPI application with deterministic planning, the development-only correction demo search provider, official SQLite LangGraph checkpoints, and bounded filesystem research history. `scripts/run_demo.ps1` pins the configuration. Keep the simulated-provider banner visible and never describe deterministic sources as live web research.
+- **Rationale:** This topology executes the same typed graph and makes HITL, correction, quarantine, citations, and restart persistence reproducible for grading without cloud availability, account, or cost risk.
+- **Evidence:** The 69-test suite, local smoke path, `docs/DEMO_SCRIPT.md`, SQLite restart test, filesystem recreation tests, 27-case evaluation, and three-attack artifact. Vertex planning remains a separate one-call live integration proof.
+- **Cost:** Deterministic demo/evaluation provider cost is $0; local billed infrastructure is $0/week, excluding existing hardware/electricity/internet.
+- **Limitations:** Single-machine and single-user; no authentication, distributed lock, shared rate limiter, public TLS endpoint, or live Tavily retrieval. Cloud adapters remain optional future work and are not part of the verified submission claim.

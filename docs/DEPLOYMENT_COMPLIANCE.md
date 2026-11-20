@@ -1,10 +1,14 @@
 # Deployment Compliance Check
 
-Last reviewed: 2026-10-12
+Last reviewed: 2026-11-19
 
-## Phase 8 status
+## Submission decision
 
-**PARTIALLY COMPLETE — USER ACTION REQUIRED.** The official topology is now sufficiently defined for a minimal implementation, but no cloud resource has been created and no live provider has been called. This computer has no Google Cloud CLI, Docker, Google credentials/project selection, Tavily key, GCS bucket, or PostgreSQL URI.
+**VERIFIED LOCAL ALTERNATIVE TOPOLOGY.** DeepTrace is submitted as a local FastAPI deployment with SQLite graph checkpoints and bounded filesystem research history. The assignment permits a justified alternative topology and uses video-based grading; no live application URL is required. The complete reproducible procedure is in `docs/LOCAL_DEPLOYMENT.md`, and `scripts/run_demo.ps1` starts the exact demonstration configuration.
+
+This decision supersedes the earlier cloud-only assumption below. Vertex planning has one controlled live verification. Tavily, GCS, PostgreSQL, Hermes, and Cloud Run remain optional future production integrations and are not submission dependencies or live-verified claims.
+
+## Retired cloud-production option (future work only)
 
 ## Exact topology
 
@@ -47,7 +51,7 @@ Development/test defaults remain deterministic. The Vertex planner uses structur
 
 Before any create/enable command, the user must approve these potentially billable resources: one continuously billed Cloud Run Instance (official example: 2 vCPU/4 GiB), Vertex model calls, Tavily calls/credits, GCS storage/operations, Secret Manager operations, and a recurring Cloud SQL PostgreSQL instance (likely the largest idle cost). The teardown plan must stop/delete the instance and delete or retain the database/bucket deliberately after grading.
 
-## Required user actions before live verification
+## Optional future user actions for cloud verification
 
 1. Install the current Google Cloud CLI and Docker Desktop (or an instructor-approved container builder). The repaired Python 3.11 environment already passes the local suite.
 2. Run `gcloud auth login` and `gcloud auth application-default login`.
@@ -60,7 +64,7 @@ Before any create/enable command, the user must approve these potentially billab
 
 The official plugin path is the strongest current interpretation. To remove grading risk, ask: **“For the required Cloud Run Instances with Hermes topology, is DeepTrace compliant when it is exposed as an authenticated Hermes dashboard plugin whose backend calls the DeepTrace package in the same Cloud Run Instance, with the Hermes dashboard URL as the grader URL?”** A negative answer would change the packaging boundary, not justify substituting an ordinary Cloud Run service.
 
-## Verification still required
+## Future production verification (not a capstone submission blocker)
 
 - Live Vertex and Tavily calls, citation sample, and usage artifact.
 - Live GCS save/load/list/new-instance/create-only test.

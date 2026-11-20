@@ -1,6 +1,6 @@
 # DeepTrace Evaluation Report
 
-**Status:** Phase 7 deterministic/local quantitative evaluation completed. Live-provider, production-quality, and deployed-system evaluation remain outstanding.
+**Status:** Submission-ready deterministic/local quantitative evaluation completed. One Vertex planning call is live-verified; live search and cloud deployment remain outside the measured sample.
 
 ## Evaluation objective
 
@@ -12,7 +12,7 @@ The custom harness loads the versioned `deeptrace-eval-v1` dataset and executes 
 
 The 27 cases comprise six initially sufficient cases, five correction-required cases, four persistent-insufficiency cases, four citation-integrity cases, three safety attack references, and five HITL cases. The harness records raw expected/actual values, individual checks, unexpected exceptions, and failure categories. A deliberately altered dataset in the automated suite proves mismatches remain visible.
 
-This measures deterministic workflow correctness, not answer truth, semantic research quality, live-web retrieval relevance, production latency, or deployed reliability. Those require a separately versioned live-provider/deployed evaluation.
+This measures deterministic workflow correctness, not answer truth, semantic research quality, live-web retrieval relevance, or public-service reliability. Those require a separately versioned live-provider evaluation.
 
 ## Metric definitions
 
@@ -32,13 +32,13 @@ This measures deterministic workflow correctness, not answer truth, semantic res
 ## Sample, environment, and artifacts
 
 - **Sample size:** 27 cases.
-- **Evaluation timestamp:** 2026-10-13 UTC (2026-10-12 America/Los_Angeles).
+- **Evaluation timestamp:** 2026-11-20 UTC (2026-11-19 America/Los_Angeles).
 - **Dataset:** `eval/datasets/deeptrace_eval_v1.json`, version `deeptrace-eval-v1`.
 - **Provider mode:** `deterministic_local`; deterministic fixture planner and search provider.
-- **Execution base:** Git commit `c05e1a314366b88d5c763f23df7cbe3150552137` with the Phase 7 candidate worktree, Python 3.11.4, maximum two retrieval passes.
+- **Execution base:** Git commit `38660d2a1f41bc9b9e8ab8e6b6a488738afe7e5e` plus the dirty submission-candidate worktree, Python 3.11.4, maximum two retrieval passes. The artifact records `git_worktree_dirty=true` rather than pretending it was generated from the base commit alone.
 - **Raw result:** `eval/results/deeptrace_eval_v1_local.json`.
 - **Generated summary:** `eval/results/deeptrace_eval_v1_local.md`.
-- **Deployment URL/build:** None; no deployed evaluation was performed.
+- **Deployment:** reproducible local FastAPI service; no public URL is required for the recorded capstone demonstration.
 
 ## Quantitative results
 
@@ -59,7 +59,7 @@ The 90.244% evidence coverage is not rounded to a perfect score: four deliberate
 
 ## Performance and resource results
 
-Across 22 workflows that produced research results, average instrumented workflow latency was 0.786 ms, median was 0.707 ms, and nearest-rank p95 was 1.086 ms. Average retrieval passes were 1.409, average search calls were 2.273, and average retained sources were 2.273. External model calls were 0. Provider credits and token usage were unavailable/not applicable. These in-process deterministic timings do not predict networked or production performance.
+Across 22 workflows that produced research results, average instrumented workflow latency was 1.213 ms, median was 1.125 ms, and nearest-rank p95 was 2.298 ms. Average retrieval passes were 1.409, average search calls were 2.273, and average retained sources were 2.273. External model calls were 0. Provider credits and token usage were unavailable/not applicable. These in-process deterministic timings do not predict networked or production performance.
 
 ## Phase 3 deterministic workflow verification
 
@@ -75,7 +75,7 @@ Scenarios A–G in `tests/test_memory.py` save completed and cancelled terminal 
 
 ## LOCAL ADVERSARIAL RESULTS — Phase 6 safety verification
 
-On 2026-10-12, the reproducible deterministic harness in `adversarial_tests/run_local.py` executed all three required attacks through real local validation/workflow paths. The machine-readable evidence is `eval/adversarial_results_local.json`; the test suite independently reruns and asserts the harness in `tests/test_adversarial.py`. This is local component/integration evidence, not a deployed-system adversarial evaluation.
+On 2026-11-19 America/Los_Angeles (2026-11-20 UTC), the reproducible deterministic harness in `adversarial_tests/run_local.py` executed all three required attacks through real local validation/workflow paths. The machine-readable evidence is `eval/adversarial_results_local.json`; the test suite independently reruns and asserts the harness in `tests/test_adversarial.py`. These attacks target the operating submission workflow and preserve the required injection point, actual trace/result, and mitigation evidence.
 
 | Test | Injection point and exact payload | Expected safe behavior | Actual local behavior | Guardrail | Status |
 |---|---|---|---|---|---|
@@ -85,7 +85,7 @@ On 2026-10-12, the reproducible deterministic harness in `adversarial_tests/run_
 
 Local summary: 3 attacks executed, 3 safely blocked/quarantined, 3 guardrail triggers, 0 unsafe objective successes, and 3 structured safety events. One benign defensive-research control containing quoted attack language was accepted with annotation rather than blocked (1 control executed, 0 false-positive blocks). This single control is not a confusion matrix and does not establish a general false-positive rate.
 
-The deployed adversarial requirement remains **NOT STARTED**. The same exact payloads must be rerun against the deployed build with authenticated traces before deployment-level safety can be claimed.
+The three-attack capstone requirement is satisfied by the local operating-system traces. A future public multi-user deployment would require a separate authenticated adversarial rerun before public-service safety could be claimed.
 
 ## Failure modes and mitigations
 
@@ -93,17 +93,21 @@ No cases failed in the complete Phase 7 deterministic run. This is evidence that
 
 The harness preserves failed cases with expected state, actual state, failed checks, exception details, and one of: retrieval/coverage failure, evidence-gap or correction failure, termination mismatch, citation failure, safety failure, HITL failure, resource-bound failure, bounded-termination failure, terminal-state failure, or unexpected evaluation failure. Automated testing changes one expected termination reason and verifies the resulting failed case remains in the artifact.
 
-Existing mitigations include bounded loops, explicit uncertainty, code-owned routing, citation closure, HITL checkpoints, input blocking, and retrieved-content quarantine. Live retrieval failure, semantic evidence-quality errors, provider drift/outage, persistence conflicts, stale distributed approval, authentication failures, production latency, and production cost remain unevaluated.
+Existing mitigations include bounded loops, explicit uncertainty, code-owned routing, citation closure, HITL checkpoints, input blocking, and retrieved-content quarantine. Live retrieval failure, semantic evidence-quality errors, provider drift/outage, distributed persistence conflicts, authentication failures, and public-service latency remain unevaluated.
 
 ## Cost analysis
 
-The deterministic evaluation made no paid model, search, storage, or infrastructure calls, so its measured paid-provider cost is **$0.00**. It executed zero external model calls; model token usage and provider credits were unavailable/not applicable. This does not predict production cost.
+The deterministic 27-case evaluation made no paid model, search, storage, or infrastructure calls, so its measured paid-provider cost is **$0.00**.
 
-The production cost model remains a method rather than an estimate: record model input/output tokens and dated unit prices, Tavily requests or credits, GCS operations and retained bytes, PostgreSQL/storage charges, and compute runtime assumptions. Report evaluation-suite cost, cost per completed task, and failure/retry costs separately. No production dollar figure will be claimed until those inputs are captured from a live run.
+The controlled Vertex planning smoke call reported **415 input tokens, 248 output tokens, and 663 total tokens**. Using the Google pricing snapshot reviewed on 2026-11-19 for global standard `gemini-3.5-flash-lite`—$0.15 per million input tokens and $1.25 per million output tokens—the estimated call cost is:
+
+`(415 × $0.15 / 1,000,000) + (248 × $1.25 / 1,000,000) = $0.00037225`
+
+At 100 equivalent planning calls per week, the model estimate is **$0.037225/week**. This is a planning-call estimate, not a full live research-session estimate; live Tavily request cost and retry behavior were not measured. The selected local FastAPI deployment has **$0/week billed infrastructure cost**, excluding the user's existing computer, electricity, and internet connection. Filesystem/SQLite storage uses existing local disk and incurred no separately billed storage charge. Pricing source: [Google Generative AI pricing](https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing).
 
 ## Known limitations
 
-The dataset is capability-matched but synthetic and only 27 cases. It establishes deterministic graph-policy behavior, not real-world answer quality. Fixtures contain deliberately constructed supportive or irrelevant snippets; there is no human relevance judgment, full-document verification, conflict benchmark, live Tavily behavior, model token usage, production persistence load, multi-worker concurrency, authentication test, deployment latency, or infrastructure cost. The three safety attacks are intentionally small and local and must not be generalized to arbitrary attacks. The deterministic critic uses plan coverage and lexical support heuristics; conflict detection remains limited because current snippets do not carry normalized claim stances. Future live/deployed methodology changes must be versioned and explained rather than merged into this local result.
+The dataset is capability-matched but synthetic and only 27 cases. It establishes deterministic graph-policy behavior, not real-world answer quality. Fixtures contain deliberately constructed supportive or irrelevant snippets; there is no human relevance judgment, full-document verification, conflict benchmark, live Tavily behavior, distributed persistence load, multi-worker concurrency, authentication test, or public-service latency measurement. The three safety attacks are intentionally small and must not be generalized to arbitrary attacks. The deterministic critic uses plan coverage and lexical support heuristics; conflict detection remains limited because current snippets do not carry normalized claim stances. Future live methodology changes must be versioned and explained rather than merged into this local result.
 
 ## Phase 8 production-evaluation boundary
 

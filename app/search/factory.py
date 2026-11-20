@@ -6,6 +6,7 @@ import os
 
 from app.config import is_production_environment
 from app.search.base import SearchProvider
+from app.search.demo import CorrectionDemoSearchProvider
 from app.search.deterministic import DeterministicSearchProvider
 from app.search.tavily import TavilySearchProvider
 
@@ -32,4 +33,8 @@ def build_search_provider() -> SearchProvider:
         return DeterministicSearchProvider(reason="TAVILY_API_KEY is not configured")
     if requested in {"deterministic", "simulated", "fixture"}:
         return DeterministicSearchProvider()
+    if requested == "demo-correction":
+        if is_production_environment():
+            raise RuntimeError("The local correction demo provider cannot run in production.")
+        return CorrectionDemoSearchProvider()
     raise ValueError(f"Unsupported SEARCH_PROVIDER: {requested}")

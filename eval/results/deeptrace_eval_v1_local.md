@@ -2,7 +2,7 @@
 
 **Scope:** Local deterministic capability evaluation; not live web-research quality or deployed performance.
 
-**Timestamp (UTC):** 2026-10-13T05:00:01.163086+00:00
+**Timestamp (UTC):** 2026-11-20T03:31:35.759755+00:00
 
 **Dataset:** `deeptrace-eval-v1`
 
@@ -10,7 +10,7 @@
 
 **Provider mode:** `deterministic_local`
 
-**Git HEAD at execution:** `c05e1a314366b88d5c763f23df7cbe3150552137` (worktree dirty: `true`)
+**Git HEAD at execution:** `38660d2a1f41bc9b9e8ab8e6b6a488738afe7e5e` (worktree dirty: `true`)
 
 ## Dataset
 
@@ -44,9 +44,9 @@ The latency sample contains 22 completed research-result workflows. These local 
 
 | Metric | Result |
 |---|---:|
-| Average workflow latency | 0.786 ms |
-| Median workflow latency | 0.707 ms |
-| Nearest-rank p95 workflow latency | 1.086 ms |
+| Average workflow latency | 1.213 ms |
+| Median workflow latency | 1.125 ms |
+| Nearest-rank p95 workflow latency | 2.298 ms |
 | Average retrieval passes | 1.409 |
 | Average search calls | 2.273 |
 | Average retained sources | 2.273 |

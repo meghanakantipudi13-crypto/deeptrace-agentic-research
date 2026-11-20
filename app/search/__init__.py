@@ -1,11 +1,13 @@
 """Search provider interfaces and implementations."""
 
 from app.search.base import SearchProvider
+from app.search.demo import CorrectionDemoSearchProvider
 from app.search.deterministic import DeterministicSearchProvider
 from app.search.factory import build_search_provider
 from app.search.tavily import TavilySearchProvider
 
 __all__ = [
+    "CorrectionDemoSearchProvider",
     "DeterministicSearchProvider",
     "SearchProvider",
     "TavilySearchProvider",

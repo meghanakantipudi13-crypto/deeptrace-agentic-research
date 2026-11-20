@@ -54,12 +54,12 @@ The explicitly approved Phase 2 scope moved retrieval/verification ahead of the 
 
 ## Phase 6 — Layered safety subsystem
 
-- **Status:** Complete and verified locally; deployed adversarial execution remains open.
+- **Status:** Complete and verified against the operating local submission workflow; future public-service testing remains separate.
 - **Objective:** Enforce trust boundaries and resource/tool limits.
 - **Components:** Scored input/plan inspection, untrusted-content quarantine, trusted graph/state policy, output/citation validation, bounded resources/timeouts, redacted events, visible UI interventions, per-process request limiting, and a reusable exact-payload runner.
 - **Rubric addressed:** Safety, ethics, alignment.
 - **Tests:** Benign/ambiguous/direct input, malicious modified plan, PI-001/002/003 graph assertions, quarantine persistence, redacted logs, rate limit, schema/resource bounds, and all prior regressions.
-- **Completion evidence:** 56 tests pass; `eval/adversarial_results_local.json` records 3/3 attacks blocked, 3/3 guardrails triggered, 0 unsafe objectives, and one accepted benign control. This still does not satisfy the required deployed attacks.
+- **Completion evidence:** 56-test phase baseline; `eval/adversarial_results_local.json` records 3/3 attacks blocked, 3/3 guardrails triggered, 0 unsafe objectives, and one accepted benign control against the operating local workflow.
 
 ## Phase 7 — Evaluation harness and instrumentation
 
@@ -70,16 +70,16 @@ The explicitly approved Phase 2 scope moved retrieval/verification ahead of the 
 - **Tests:** Dataset/schema rejection, scorer mismatches, zero denominators, serialization/overwrite policy, failure visibility, and derived safety aggregation.
 - **Completion evidence:** 63-test suite plus complete `deeptrace-eval-v1` run: 27/27 expected outcomes, 37/41 evidence coverage, 39/39 valid citations, and raw/Markdown artifacts. Results are explicitly local/deterministic.
 
-## Phase 8 — Production integration and verification
+## Phase 8 — Production adapter integration and verification
 
-- **Status:** Partially complete; user action required.
+- **Status:** Complete for the submission scope; optional cloud integrations remain unverified.
 - **Objective:** Resolve the Cloud Run Instance/Hermes topology and replace simulated production fallbacks with explicit provider configuration.
 - **Components:** Structured Vertex/Gemini planner, token/model/latency metadata, fail-closed production validation, LIVE-mode UI, official topology/IAM/cost documentation.
-- **Boundary:** No cloud resources were provisioned and no provider was live-called because Google tooling/authentication/project configuration and Tavily/GCS/PostgreSQL secrets are absent. Deterministic artifacts remain separate.
-- **Local evidence:** Python 3.11.4, dependency checks, production imports, compilation, and all 67 deterministic/mock tests pass.
-- **Next evidence:** authenticate/select a project, approve costs, then perform controlled Vertex, Tavily, GCS, PostgreSQL, and Hermes smoke tests.
+- **Boundary:** One controlled Vertex planning call is verified. Tavily/GCS/PostgreSQL/Cloud Run remain implemented or planned but unverified; deterministic artifacts remain separate.
+- **Local evidence:** Python 3.11, dependency checks, production imports, compilation, and the full 69-test deterministic/mock suite.
+- **Submission decision:** use the justified local FastAPI deployment rather than provision recurring cloud infrastructure solely for grading.
 
-## Phase 9 — Assignment-compliant deployment and monitoring
+## Optional future phase — public cloud deployment and monitoring
 
 - **Objective:** Produce a stable grader URL on the instructor-confirmed topology.
 - **Components:** Container, Cloud Run Instance/Hermes integration, GCS, PostgreSQL, Secret Manager, IAM, Cloud Logging/Monitoring.
@@ -87,13 +87,13 @@ The explicitly approved Phase 2 scope moved retrieval/verification ahead of the 
 - **Tests:** Health/readiness, external URL, end-to-end run, restart persistence, concurrency, alert test, secret scan.
 - **Completion evidence:** Deployment revision/config, smoke-test output, monitor evidence, reachable URL.
 
-## Phase 10 — Final evaluation and submission package
+## Final submission package
 
-- **Objective:** Freeze a release and complete all six deliverables without stale claims.
+- **Objective:** Freeze a release and complete all five deliverable types without stale claims.
 - **Components:** Final evaluation, README/compliance update, failure/cost report, process log, 10+ slide deck, 5–10 minute demo script/video, release tag.
 - **Rubric addressed:** All categories and deliverables.
-- **Tests/checks:** Full suite on release commit; URL check from outside account; docs-to-code audit; slide count; video duration/content checklist; process-log word count; repository secret scan.
-- **Completion evidence:** Tagged commit, current GitHub repository, live URL, raw/final evaluation artifacts, deck, video, final report, and accurate compliance tracker.
+- **Tests/checks:** Full suite on release commit; local smoke; docs-to-code audit; slide count; video duration/content checklist; process-log word count; repository secret scan.
+- **Completion evidence:** Current GitHub repository, local deployment instructions, raw/final evaluation artifacts, deck, video, final report, and accurate compliance tracker.
 
 ## Milestone rule
 

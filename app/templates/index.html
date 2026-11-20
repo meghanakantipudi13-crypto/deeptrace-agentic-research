@@ -10,7 +10,7 @@
     <main class="shell">
       <header class="hero">
         <nav><a href="/">New research</a><a href="/history">Research history</a></nav>
-        <div class="eyebrow">DeepTrace · Phase 6</div>
+        <div class="eyebrow">DeepTrace · Capstone release</div>
         <h1>Research with visible safety boundaries.</h1>
         <p>
           DeepTrace pauses at a real checkpoint after planning. Approved results are
@@ -159,7 +159,7 @@
         <p class="trace">Workflow: {{ cancelled.workflow_events|join(" → ") }}</p>
         {% elif not research %}
         <div class="boundary">
-          <strong>Phase 1 boundary reached</strong>
+          <strong>Planning boundary reached</strong>
           <span>No sources were retrieved and no claims were verified.</span>
         </div>
         <p class="trace">Workflow: {{ result.workflow_events|join(" → ") }} · {{ "%.2f"|format(result.elapsed_ms) }} ms</p>
@@ -281,8 +281,8 @@
         </ul>
 
         <div class="boundary">
-          <strong>Phase 6 local boundary reached</strong>
-          <span>Layered safety, human approval, bounded retrieval, and durable history are active. Deployed adversarial testing, quantitative evaluation, and deployment remain open.</span>
+          <strong>Submission workflow complete</strong>
+          <span>Layered safety, human approval, bounded retrieval, citation closure, and durable local history are active. Results are simulated when the development provider banner is shown.</span>
         </div>
         <p><a href="/history/{{ research.request_id }}">Open saved research record</a></p>
         <p class="trace">Approval: {{ research.approval_decision }} · Plan modified: {{ research.plan_modified }}</p>

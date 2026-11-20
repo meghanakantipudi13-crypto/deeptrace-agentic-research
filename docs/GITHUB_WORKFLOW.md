@@ -2,16 +2,14 @@
 
 ## Repository target
 
-Recommended repository name: `deeptrace-agentic-research`.
+Repository: `https://github.com/meghanakantipudi13-crypto/deeptrace-agentic-research.git`.
 
-No GitHub remote is currently configured. GitHub CLI was not detected during Phase 0, so no repository creation or push is claimed.
+The repository is configured as `origin`, and `main` is the release branch. Authentication uses Git Credential Manager/browser sign-in; credentials and tokens are never stored in tracked files.
 
-## Minimal manual step
-
-After reviewing Phase 0, create an **empty** GitHub repository named `deeptrace-agentic-research` under the desired account. Do not initialize it with a README, `.gitignore`, or license because those exist locally. Then provide the repository HTTPS or SSH URL. The local connection will be:
+## Synchronization commands
 
 ```text
-git remote add origin <repository-url>
+git remote -v
 git push -u origin main
 ```
 

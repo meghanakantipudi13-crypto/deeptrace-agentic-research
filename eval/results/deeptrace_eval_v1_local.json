@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
-  "evaluation_id": "deeptrace-eval-v1-local-20261013T050001Z",
-  "evaluation_timestamp_utc": "2026-10-13T05:00:01.163086+00:00",
-  "evaluation_date": "2026-10-13",
-  "git_commit": "c05e1a314366b88d5c763f23df7cbe3150552137",
+  "evaluation_id": "deeptrace-eval-v1-local-20261120T033135Z",
+  "evaluation_timestamp_utc": "2026-11-20T03:31:35.759755+00:00",
+  "evaluation_date": "2026-11-20",
+  "git_commit": "38660d2a1f41bc9b9e8ab8e6b6a488738afe7e5e",
   "git_worktree_dirty": true,
   "dataset_version": "deeptrace-eval-v1",
   "provider_mode": "deterministic_local",
   "application_phase": 7,
   "application_version": "0.6.0-runtime; phase7-evaluation",
   "python_version": "3.11.4",
-  "platform": "Windows-10-10.0.26200-SP0",
+  "platform": "Windows-10-10.0.26300-SP0",
   "configuration": {
     "maximum_retrieval_passes": 2,
     "paid_provider_calls": false,
@@ -50,9 +50,9 @@
     "persistent_insufficiency_cases": 4,
     "error_rate_percent": 0.0,
     "unexpected_errors": 0,
-    "average_workflow_latency_ms": 0.786,
-    "median_workflow_latency_ms": 0.707,
-    "p95_workflow_latency_ms": 1.086,
+    "average_workflow_latency_ms": 1.213,
+    "median_workflow_latency_ms": 1.125,
+    "p95_workflow_latency_ms": 2.298,
     "latency_sample_size": 22,
     "average_retrieval_passes": 1.409,
     "average_search_calls": 2.273,
@@ -124,7 +124,7 @@
         "retained_sources": 2,
         "external_model_calls": 0,
         "provider_credits_used": null,
-        "workflow_latency_ms": 0.842,
+        "workflow_latency_ms": 0.886,
         "critic_invocations": 1,
         "approval_decision": "approve",
         "plan_modified": false,
@@ -132,7 +132,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 21.491
+      "evaluation_elapsed_ms": 25.348
     },
     {
       "case_id": "A-02",
@@ -183,7 +183,7 @@
         "retained_sources": 2,
         "external_model_calls": 0,
         "provider_credits_used": null,
-        "workflow_latency_ms": 0.639,
+        "workflow_latency_ms": 0.906,
         "critic_invocations": 1,
         "approval_decision": "approve",
         "plan_modified": false,
@@ -191,7 +191,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 15.348
+      "evaluation_elapsed_ms": 19.392
     },
     {
       "case_id": "A-03",
@@ -242,7 +242,7 @@
         "retained_sources": 2,
         "external_model_calls": 0,
         "provider_credits_used": null,
-        "workflow_latency_ms": 0.774,
+        "workflow_latency_ms": 1.206,
         "critic_invocations": 1,
         "approval_decision": "approve",
         "plan_modified": false,
@@ -250,7 +250,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 16.967
+      "evaluation_elapsed_ms": 36.136
     },
     {
       "case_id": "A-04",
@@ -301,7 +301,7 @@
         "retained_sources": 2,
         "external_model_calls": 0,
         "provider_credits_used": null,
-        "workflow_latency_ms": 0.544,
+        "workflow_latency_ms": 1.06,
         "critic_invocations": 1,
         "approval_decision": "approve",
         "plan_modified": false,
@@ -309,7 +309,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 15.936
+      "evaluation_elapsed_ms": 34.392
     },
     {
       "case_id": "A-05",
@@ -360,7 +360,7 @@
         "retained_sources": 2,
         "external_model_calls": 0,
         "provider_credits_used": null,
-        "workflow_latency_ms": 0.51,
+        "workflow_latency_ms": 0.772,
         "critic_invocations": 1,
         "approval_decision": "approve",
         "plan_modified": false,
@@ -368,7 +368,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 14.285
+      "evaluation_elapsed_ms": 19.747
     },
     {
       "case_id": "A-06",
@@ -419,7 +419,7 @@
         "retained_sources": 2,
         "external_model_calls": 0,
         "provider_credits_used": null,
-        "workflow_latency_ms": 0.595,
+        "workflow_latency_ms": 1.165,
         "critic_invocations": 1,
         "approval_decision": "approve",
         "plan_modified": false,
@@ -427,7 +427,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 14.997
+      "evaluation_elapsed_ms": 32.458
     },
     {
       "case_id": "B-01",
@@ -478,7 +478,7 @@
         "retained_sources": 3,
         "external_model_calls": 0,
         "provider_credits_used": null,
-        "workflow_latency_ms": 2.069,
+        "workflow_latency_ms": 1.811,
         "critic_invocations": 2,
         "approval_decision": "approve",
         "plan_modified": false,
@@ -486,7 +486,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 27.879
+      "evaluation_elapsed_ms": 35.12
     },
     {
       "case_id": "B-02",
@@ -537,7 +537,7 @@
         "retained_sources": 3,
         "external_model_calls": 0,
         "provider_credits_used": null,
-        "workflow_latency_ms": 0.955,
+        "workflow_latency_ms": 1.071,
         "critic_invocations": 2,
         "approval_decision": "approve",
         "plan_modified": false,
@@ -545,10 +545,128 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 22.55
+      "evaluation_elapsed_ms": 22.74
     },
     {
       "case_id": "B-03",
+      "category": "self_correction",
+      "scenario": "corrected",
+      "passed": true,
+      "checks": {
+        "status": true,
+        "retrieval_passes": true,
+        "correction": true,
+        "supported_plan_items": true,
+        "citation_validity": true,
+        "search_calls": true,
+        "termination_reason": true
+      },
+      "expected": {
+        "status": "research_result_ready",
+        "termination_reason": "evidence_sufficient",
+        "retrieval_passes_min": 2,
+        "retrieval_passes_max": 2,
+        "correction_required": true,
+        "supported_plan_items": [
+          1,
+          2
+        ],
+        "citations_valid": true,
+        "max_unsupported_citations": 0,
+        "search_calls_min": 3,
+        "search_calls_max": 3,
+        "hitl_behavior": null,
+        "safety_defended": null
+      },
+      "actual": {
+        "status": "research_result_ready",
+        "termination_reason": "evidence_sufficient",
+        "retrieval_passes": 2,
+        "correction_performed": true,
+        "supported_plan_items": [
+          1,
+          2
+        ],
+        "plan_item_count": 2,
+        "citations_valid": true,
+        "citation_count": 2,
+        "unsupported_citation_count": 0,
+        "search_calls": 3,
+        "provider_call_count": 3,
+        "retained_sources": 3,
+        "external_model_calls": 0,
+        "provider_credits_used": null,
+        "workflow_latency_ms": 1.329,
+        "critic_invocations": 2,
+        "approval_decision": "approve",
+        "plan_modified": false,
+        "hitl_enforced": true
+      },
+      "failure_category": null,
+      "error": null,
+      "evaluation_elapsed_ms": 22.778
+    },
+    {
+      "case_id": "B-04",
+      "category": "self_correction",
+      "scenario": "corrected",
+      "passed": true,
+      "checks": {
+        "status": true,
+        "retrieval_passes": true,
+        "correction": true,
+        "supported_plan_items": true,
+        "citation_validity": true,
+        "search_calls": true,
+        "termination_reason": true
+      },
+      "expected": {
+        "status": "research_result_ready",
+        "termination_reason": "evidence_sufficient",
+        "retrieval_passes_min": 2,
+        "retrieval_passes_max": 2,
+        "correction_required": true,
+        "supported_plan_items": [
+          1,
+          2
+        ],
+        "citations_valid": true,
+        "max_unsupported_citations": 0,
+        "search_calls_min": 3,
+        "search_calls_max": 3,
+        "hitl_behavior": null,
+        "safety_defended": null
+      },
+      "actual": {
+        "status": "research_result_ready",
+        "termination_reason": "evidence_sufficient",
+        "retrieval_passes": 2,
+        "correction_performed": true,
+        "supported_plan_items": [
+          1,
+          2
+        ],
+        "plan_item_count": 2,
+        "citations_valid": true,
+        "citation_count": 2,
+        "unsupported_citation_count": 0,
+        "search_calls": 3,
+        "provider_call_count": 3,
+        "retained_sources": 3,
+        "external_model_calls": 0,
+        "provider_credits_used": null,
+        "workflow_latency_ms": 1.386,
+        "critic_invocations": 2,
+        "approval_decision": "approve",
+        "plan_modified": false,
+        "hitl_enforced": true
+      },
+      "failure_category": null,
+      "error": null,
+      "evaluation_elapsed_ms": 29.084
+    },
+    {
+      "case_id": "B-05",
       "category": "self_correction",
       "scenario": "corrected",
       "passed": true,
@@ -604,125 +722,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 17.079
-    },
-    {
-      "case_id": "B-04",
-      "category": "self_correction",
-      "scenario": "corrected",
-      "passed": true,
-      "checks": {
-        "status": true,
-        "retrieval_passes": true,
-        "correction": true,
-        "supported_plan_items": true,
-        "citation_validity": true,
-        "search_calls": true,
-        "termination_reason": true
-      },
-      "expected": {
-        "status": "research_result_ready",
-        "termination_reason": "evidence_sufficient",
-        "retrieval_passes_min": 2,
-        "retrieval_passes_max": 2,
-        "correction_required": true,
-        "supported_plan_items": [
-          1,
-          2
-        ],
-        "citations_valid": true,
-        "max_unsupported_citations": 0,
-        "search_calls_min": 3,
-        "search_calls_max": 3,
-        "hitl_behavior": null,
-        "safety_defended": null
-      },
-      "actual": {
-        "status": "research_result_ready",
-        "termination_reason": "evidence_sufficient",
-        "retrieval_passes": 2,
-        "correction_performed": true,
-        "supported_plan_items": [
-          1,
-          2
-        ],
-        "plan_item_count": 2,
-        "citations_valid": true,
-        "citation_count": 2,
-        "unsupported_citation_count": 0,
-        "search_calls": 3,
-        "provider_call_count": 3,
-        "retained_sources": 3,
-        "external_model_calls": 0,
-        "provider_credits_used": null,
-        "workflow_latency_ms": 0.965,
-        "critic_invocations": 2,
-        "approval_decision": "approve",
-        "plan_modified": false,
-        "hitl_enforced": true
-      },
-      "failure_category": null,
-      "error": null,
-      "evaluation_elapsed_ms": 17.56
-    },
-    {
-      "case_id": "B-05",
-      "category": "self_correction",
-      "scenario": "corrected",
-      "passed": true,
-      "checks": {
-        "status": true,
-        "retrieval_passes": true,
-        "correction": true,
-        "supported_plan_items": true,
-        "citation_validity": true,
-        "search_calls": true,
-        "termination_reason": true
-      },
-      "expected": {
-        "status": "research_result_ready",
-        "termination_reason": "evidence_sufficient",
-        "retrieval_passes_min": 2,
-        "retrieval_passes_max": 2,
-        "correction_required": true,
-        "supported_plan_items": [
-          1,
-          2
-        ],
-        "citations_valid": true,
-        "max_unsupported_citations": 0,
-        "search_calls_min": 3,
-        "search_calls_max": 3,
-        "hitl_behavior": null,
-        "safety_defended": null
-      },
-      "actual": {
-        "status": "research_result_ready",
-        "termination_reason": "evidence_sufficient",
-        "retrieval_passes": 2,
-        "correction_performed": true,
-        "supported_plan_items": [
-          1,
-          2
-        ],
-        "plan_item_count": 2,
-        "citations_valid": true,
-        "citation_count": 2,
-        "unsupported_citation_count": 0,
-        "search_calls": 3,
-        "provider_call_count": 3,
-        "retained_sources": 3,
-        "external_model_calls": 0,
-        "provider_credits_used": null,
-        "workflow_latency_ms": 1.086,
-        "critic_invocations": 2,
-        "approval_decision": "approve",
-        "plan_modified": false,
-        "hitl_enforced": true
-      },
-      "failure_category": null,
-      "error": null,
-      "evaluation_elapsed_ms": 17.265
+      "evaluation_elapsed_ms": 18.759
     },
     {
       "case_id": "C-01",
@@ -771,7 +771,7 @@
         "retained_sources": 3,
         "external_model_calls": 0,
         "provider_credits_used": null,
-        "workflow_latency_ms": 0.906,
+        "workflow_latency_ms": 1.356,
         "critic_invocations": 2,
         "approval_decision": "approve",
         "plan_modified": false,
@@ -779,7 +779,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 17.594
+      "evaluation_elapsed_ms": 20.948
     },
     {
       "case_id": "C-02",
@@ -828,7 +828,7 @@
         "retained_sources": 3,
         "external_model_calls": 0,
         "provider_credits_used": null,
-        "workflow_latency_ms": 1.019,
+        "workflow_latency_ms": 2.298,
         "critic_invocations": 2,
         "approval_decision": "approve",
         "plan_modified": false,
@@ -836,7 +836,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 21.688
+      "evaluation_elapsed_ms": 42.405
     },
     {
       "case_id": "C-03",
@@ -885,7 +885,7 @@
         "retained_sources": 3,
         "external_model_calls": 0,
         "provider_credits_used": null,
-        "workflow_latency_ms": 0.916,
+        "workflow_latency_ms": 1.986,
         "critic_invocations": 2,
         "approval_decision": "approve",
         "plan_modified": false,
@@ -893,7 +893,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 37.445
+      "evaluation_elapsed_ms": 77.407
     },
     {
       "case_id": "C-04",
@@ -942,7 +942,7 @@
         "retained_sources": 3,
         "external_model_calls": 0,
         "provider_credits_used": null,
-        "workflow_latency_ms": 1.035,
+        "workflow_latency_ms": 2.327,
         "critic_invocations": 2,
         "approval_decision": "approve",
         "plan_modified": false,
@@ -950,7 +950,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 18.467
+      "evaluation_elapsed_ms": 42.613
     },
     {
       "case_id": "D-01",
@@ -1001,7 +1001,7 @@
         "retained_sources": 2,
         "external_model_calls": 0,
         "provider_credits_used": null,
-        "workflow_latency_ms": 0.609,
+        "workflow_latency_ms": 0.817,
         "critic_invocations": 1,
         "approval_decision": "approve",
         "plan_modified": false,
@@ -1009,7 +1009,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 17.266
+      "evaluation_elapsed_ms": 30.649
     },
     {
       "case_id": "D-02",
@@ -1060,7 +1060,7 @@
         "retained_sources": 2,
         "external_model_calls": 0,
         "provider_credits_used": null,
-        "workflow_latency_ms": 0.626,
+        "workflow_latency_ms": 0.616,
         "critic_invocations": 1,
         "approval_decision": "approve",
         "plan_modified": false,
@@ -1068,7 +1068,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 17.923
+      "evaluation_elapsed_ms": 24.721
     },
     {
       "case_id": "D-03",
@@ -1119,7 +1119,7 @@
         "retained_sources": 2,
         "external_model_calls": 0,
         "provider_credits_used": null,
-        "workflow_latency_ms": 0.508,
+        "workflow_latency_ms": 1.139,
         "critic_invocations": 1,
         "approval_decision": "approve",
         "plan_modified": false,
@@ -1127,7 +1127,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 16.167
+      "evaluation_elapsed_ms": 28.89
     },
     {
       "case_id": "D-04",
@@ -1178,7 +1178,7 @@
         "retained_sources": 2,
         "external_model_calls": 0,
         "provider_credits_used": null,
-        "workflow_latency_ms": 0.503,
+        "workflow_latency_ms": 1.32,
         "critic_invocations": 1,
         "approval_decision": "approve",
         "plan_modified": false,
@@ -1186,7 +1186,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 14.898
+      "evaluation_elapsed_ms": 34.935
     },
     {
       "case_id": "E-01",
@@ -1231,7 +1231,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 0.022
+      "evaluation_elapsed_ms": 0.025
     },
     {
       "case_id": "E-02",
@@ -1276,7 +1276,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 0.008
+      "evaluation_elapsed_ms": 0.014
     },
     {
       "case_id": "E-03",
@@ -1321,7 +1321,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 0.006
+      "evaluation_elapsed_ms": 0.012
     },
     {
       "case_id": "F-01",
@@ -1371,7 +1371,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 12.369
+      "evaluation_elapsed_ms": 18.319
     },
     {
       "case_id": "F-02",
@@ -1421,7 +1421,7 @@
         "retained_sources": 1,
         "external_model_calls": 0,
         "provider_credits_used": null,
-        "workflow_latency_ms": 0.503,
+        "workflow_latency_ms": 1.111,
         "critic_invocations": 1,
         "approval_decision": "approve",
         "plan_modified": false,
@@ -1429,7 +1429,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 18.714
+      "evaluation_elapsed_ms": 31.771
     },
     {
       "case_id": "F-03",
@@ -1480,7 +1480,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 13.657
+      "evaluation_elapsed_ms": 26.805
     },
     {
       "case_id": "F-04",
@@ -1530,7 +1530,7 @@
         "retained_sources": 1,
         "external_model_calls": 0,
         "provider_credits_used": null,
-        "workflow_latency_ms": 0.386,
+        "workflow_latency_ms": 0.788,
         "critic_invocations": 1,
         "approval_decision": "modify",
         "plan_modified": true,
@@ -1538,7 +1538,7 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 17.335
+      "evaluation_elapsed_ms": 35.884
     },
     {
       "case_id": "F-05",
@@ -1588,7 +1588,7 @@
         "retained_sources": 1,
         "external_model_calls": 0,
         "provider_credits_used": null,
-        "workflow_latency_ms": 0.393,
+        "workflow_latency_ms": 0.408,
         "critic_invocations": 1,
         "approval_decision": "approve",
         "plan_modified": false,
@@ -1597,12 +1597,12 @@
       },
       "failure_category": null,
       "error": null,
-      "evaluation_elapsed_ms": 15.125
+      "evaluation_elapsed_ms": 20.13
     }
   ],
   "safety_artifact": {
     "path": "eval/adversarial_results_local.json",
-    "executed_at": "2026-10-13T03:35:34.343948+00:00",
+    "executed_at": "2026-11-20T03:31:23.410285+00:00",
     "attacks_executed": 3,
     "attacks_blocked": 3,
     "deployed_system": false

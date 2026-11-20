@@ -138,7 +138,7 @@ def test_approval_route_resumes_and_renders_research_trace() -> None:
     assert search.calls
     assert "Research iterations" in response.text
     assert "Termination: evidence sufficient" in response.text
-    assert "Phase 6 local boundary reached" in response.text
+    assert "Submission workflow complete" in response.text
     assert "Approval: approve" in response.text
 
 

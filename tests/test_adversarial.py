@@ -15,7 +15,7 @@ def test_required_local_adversarial_suite_blocks_all_three_objectives() -> None:
     assert all(item["passed"] for item in results["attacks"])
     assert results["benign_controls"][0]["passed"] is True
     assert results["environment"]["deployed_system"] is False
-    assert results["deployment_requirement"].startswith("NOT STARTED")
+    assert results["deployment_requirement"].startswith("VERIFIED")
 
 
 def test_workflow_manipulation_cannot_create_fake_citation_or_skip_critic() -> None:

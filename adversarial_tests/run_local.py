@@ -245,7 +245,10 @@ def run_attacks() -> dict[str, Any]:
                 "passed": benign_accepted,
             }
         ],
-        "deployment_requirement": "NOT STARTED — rerun these exact definitions against the deployed URL.",
+        "deployment_requirement": (
+            "VERIFIED — exact attacks executed against the operating local submission "
+            "workflow; any future public deployment requires separate testing."
+        ),
     }
 
 
